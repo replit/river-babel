@@ -176,3 +176,6 @@ dist
 
 # Codegen
 schema.json
+
+# pyc
+*.pyc

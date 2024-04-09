@@ -1,0 +1,41 @@
+
+
+syntax = "proto3";
+
+// import "google/protobuf/timestamp.proto";
+
+package replit.river.test;
+
+message KVRequest {
+  string key = 1;
+  int32 value = 2;
+}
+
+message KVResponse {
+  int32 v = 1;
+}
+
+message EchoInput {
+  string str = 1;
+}
+
+message EchoOutput {
+  string out = 1;
+}
+
+message UploadInput {
+  string part = 1;
+}
+
+message UploadOutput {
+  string doc = 1;
+}
+
+service Test {
+  rpc set (KVRequest) returns (KVResponse);
+  rpc watch (KVRequest) returns (stream KVResponse);
+  rpc echo (stream EchoInput) returns (stream EchoOutput);
+  // TODO: enable this once python river server support init
+  // rpc echo_prefix (stream EchoInput) returns (stream EchoOutput);
+  rpc upload (stream EchoInput) returns (EchoOutput);
+}
