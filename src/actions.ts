@@ -1,6 +1,3 @@
-import chalk from "chalk";
-import type { Container } from "dockerode";
-
 // driver actions for each container
 export type Action =
   | InvokeActions

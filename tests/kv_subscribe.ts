@@ -1,4 +1,4 @@
-import type { Test } from "../driver";
+import type { Test } from "../src/actions";
 
 export const KvSubscribeTest: Test = {
   client: {
