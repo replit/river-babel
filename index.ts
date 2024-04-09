@@ -17,6 +17,7 @@ import {
 import { PassThrough } from "stream";
 import { diffLines } from "diff";
 import { KvRpcTest } from "./tests/kv_rpc";
+import { KvSubscribeErrorTest, KvSubscribeMultipleTest, KvSubscribeTest } from "./tests/kv_subscribe";
 
 const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
   .options({
@@ -185,13 +186,16 @@ async function setupContainer(
 ): Promise<ContainerHandle> {
   const imageName = `river-babel-${impl}-${type}`;
   const containerName = suffix ? `river-${type}-${suffix}` : `river-${type}`;
-  const containers = await docker.listContainers({
-    all: true,
-    filters: { name: [containerName] },
-  });
+  const getContainerId = async () => {
+    const containers = await docker.listContainers({
+      all: true,
+      filters: { name: [containerName] },
+    });
+    return containers.find((c) => c.Image === imageName)?.Id;
+  }
 
   let container: Docker.Container;
-  let containerId = containers.find((c) => c.Image === imageName)?.Id;
+  let containerId = await getContainerId();
   if (!containerId) {
     console.log(chalk.blue(`creating ${type} container`));
     container = await docker.createContainer({
@@ -200,10 +204,14 @@ async function setupContainer(
       ExposedPorts: {
         "8080/tcp": {},
       },
+      HostConfig: {
+        NetworkMode: NETWORK_NAME,
+        AutoRemove: true,
+      },
       OpenStdin: true,
       Env: [
         "PORT=8080",
-        `CLIENT_TRANSPORT_ID=${impl}-${type}`,
+        suffix ? `CLIENT_TRANSPORT_ID=${impl}-${type}-${suffix}` : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
         `SERVER_TRANSPORT_ID=${impl}-server`,
         "HEARTBEAT_MS=1000",
         "HEARTBEATS_TO_DEAD=2",
@@ -214,26 +222,30 @@ async function setupContainer(
   }
 
   container ??= docker.getContainer(containerId);
-  cleanupFns.push(async () => {
-    console.log(chalk.blue(`cleanup: removing ${type} container`));
-    await container.remove({ force: true });
-  });
-
   const [stdin, stdout, stderr] = await containerStreams(container);
   await container.start();
-  await network.connect({ Container: container.id });
+
+  const removeContainerIfExists = async () => {
+    stdout.end();
+    stderr.end();
+    const id = await getContainerId();
+    if (id) {
+      console.log(chalk.blue(`cleanup: removing ${type} container`));
+      const c = docker.getContainer(id);
+      await c.remove({ force: true });
+    }
+  }
+
+  cleanupFns.push(removeContainerIfExists);
+
+  // warm up the container
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   return {
     container,
     stdin,
     stdout: streamToString(stdout),
     stderr: streamToString(stderr),
-    cleanup: async () => {
-      stdout.end();
-      stderr.end();
-      if ((await container.inspect()).State.Running) {
-        await container.stop();
-      }
-    },
+    cleanup: removeContainerIfExists,
   };
 }
 
@@ -306,18 +318,19 @@ async function runSuite(tests: Record<string, Test>) {
     }
 
     console.log(chalk.yellow(`[${name}] run`));
-    Object.values(containers).forEach(async (client) => {
+    await Promise.all(Object.values(containers).map(async (client) => {
       for (const action of client.actions) {
         await applyAction(client, action);
       }
+    }));
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await client.cleanup();
-    });
-
-    // wait a little bit for the server to finish processing
+    // wait a little bit to finish processing
+    console.log(chalk.yellow(`[${name}] cleanup`));
     await new Promise((resolve) => setTimeout(resolve, 1000));
+    await Promise.all(Object.values(containers).map(async (client) => await client.cleanup()));
     await serverContainer.cleanup();
+
+    console.log(chalk.yellow(`[${name}] check`));
 
     // for each client diff actual output with expected output
     let testFailed = false;
@@ -347,6 +360,7 @@ async function runSuite(tests: Record<string, Test>) {
     }
 
     numTests++;
+    console.log('\n')
   }
 
   console.log(chalk.black.bgYellow(" SUMMARY "));
@@ -361,7 +375,10 @@ async function runSuite(tests: Record<string, Test>) {
 
 // run the test suite
 await runSuite({
-  'kv rpc basic': KvRpcTest,
+  'kv rpc': KvRpcTest,
+  'kv subscribe': KvSubscribeTest,
+  'kv subscribe error': KvSubscribeErrorTest,
+  'kv subscribe multiple clients': KvSubscribeMultipleTest,
 })
 
 await cleanup();
