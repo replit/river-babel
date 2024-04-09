@@ -9,6 +9,8 @@ import { diffLines } from "diff";
 import { KvRpcTest } from "./tests/kv_rpc";
 import { KvSubscribeErrorTest, KvSubscribeMultipleTest, KvSubscribeTest } from "./tests/kv_subscribe";
 import { buildImage, cleanup, setupNetwork, type ContainerHandle, applyAction, setupContainer, type ClientContainer } from "./src/docker";
+import { RepeatEchoPrefixTest, RepeatEchoTest } from "./tests/repeat_stream";
+import { UploadSendTest } from "./tests/send_upload";
 
 const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
   .options({
@@ -37,10 +39,10 @@ process
     process.exit(1);
   });
 
-
-await buildImage(clientImpl, "client");
-await buildImage(serverImpl, "server");
-const network = await setupNetwork();
+  process.on('SIGINT', async () => {
+    await cleanup();
+    process.exit(1);
+  });
 
 function constructDiffString(expected: string, actual: string): [string, boolean] {
   const diff = diffLines(expected.trim(), actual.trim(), { ignoreWhitespace: true });
@@ -62,6 +64,11 @@ function constructDiffString(expected: string, actual: string): [string, boolean
 }
 
 async function runSuite(tests: Record<string, Test>) {
+  // setup
+  await buildImage(clientImpl, "client");
+  await buildImage(serverImpl, "server");
+  const network = await setupNetwork();
+
   console.log('\n' + chalk.black.bgYellow(" TESTS "));
   let numTests = 0;
   let testsFailed = [];
@@ -144,6 +151,9 @@ await runSuite({
   'kv subscribe': KvSubscribeTest,
   'kv subscribe error': KvSubscribeErrorTest,
   'kv subscribe multiple clients': KvSubscribeMultipleTest,
+  'echo stream': RepeatEchoTest,
+  'echo stream with prefix': RepeatEchoPrefixTest,
+  'upload': UploadSendTest,
 })
 
 await cleanup();

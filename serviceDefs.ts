@@ -98,23 +98,20 @@ const DummyUploadConstructor = () =>
   ServiceBuilder.create('upload')
     .defineProcedure('send', {
       type: 'upload',
-      input: Type.Union([Type.Object({ part: Type.Uint8Array() }), Type.Object({ part: Type.Literal("EOF") })]),
-      output: Type.Object({ doc: Type.Uint8Array() }),
+      input: Type.Object({ part: Type.Union([Type.String(), Type.Literal("EOF")]) }),
+      output: Type.Object({ doc: Type.String() }),
       errors: Type.Never(),
       async handler(_ctx, input) {
-        let buf = new Uint8Array([])
+        let doc = ""
         for await (const { part } of input) {
           if (part === 'EOF') {
             break
           }
 
-          const newBuf = new Uint8Array(buf.length + part.length)
-          newBuf.set(buf)
-          newBuf.set(part, buf.length)
-          buf = newBuf
+          doc += part
         }
 
-        return Ok({ doc: buf })
+        return Ok({ doc })
       }
     })
     .finalize()

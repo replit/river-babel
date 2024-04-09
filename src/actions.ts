@@ -108,7 +108,9 @@ export function serializeInvokeAction(action: InvokeActions) {
     }
   }
 
-  return `${action.id} -- ${action.proc} -> ${payload}`;
+  const serialized = `${action.id} -- ${action.proc} -> ${payload}`;
+  console.log(serialized);
+  return serialized;
 }
 
 export type ExpectedOutputEntry = {

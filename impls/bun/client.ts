@@ -6,6 +6,7 @@ import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
 import { bindLogger, log, setLevel } from "@replit/river/logging";
 import type { serviceDefs } from "./serviceDefs";
+import type { Pushable } from "it-pushable";
 
 const {
   PORT,
@@ -40,8 +41,9 @@ const rl = readline.createInterface({
   terminal: false
 });
 
-rl.on('line', async (line) => {
-  const match = line.match(/(?<id>\w+) -- (?:(?<svc>\w+)\.(?<proc>\w+) )?-> ?(?<payload>.*)/);
+const handles = new Map<string, Pushable<unknown>>();
+for await (const line of rl) {
+  const match = line.match(/(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/);
   if (!match || !match.groups) {
     console.error("FATAL: invalid command", line);
     process.exit(1);
@@ -69,5 +71,59 @@ rl.on('line', async (line) => {
         }
       })();
     }
+  } else if (svc === 'repeat') {
+    if (proc === 'echo') {
+      if (!handles.has(id)) {
+        const [input, output] = await client.repeat.echo.stream();
+        (async () => {
+          for await (const v of output) {
+            if (v.ok) {
+              console.log(`${id} -- ok:${v.payload.out}`);
+            } else {
+              console.log(`${id} -- err:${v.payload.code}`);
+            }
+          }
+        })();
+
+        handles.set(id, input);
+      } else {
+        handles.get(id)!.push({str: payload});
+      }
+    } else if (proc === 'echo_prefix') {
+      if (!handles.has(id)) {
+        const [input, output] = await client.repeat.echo_prefix.stream({prefix: payload});
+        (async () => {
+          for await (const v of output) {
+            if (v.ok) {
+              console.log(`${id} -- ok:${v.payload.out}`);
+            } else {
+              console.log(`${id} -- err:${v.payload.code}`);
+            }
+          }
+        })();
+
+        handles.set(id, input);
+      } else {
+        handles.get(id)!.push({str: payload});
+      }
+    }
+  } else if (svc === 'upload') {
+    if (proc === 'send') {
+      if (!handles.has(id)) {
+        const [input, res] = await client.upload.send.upload();
+        handles.set(id, input);
+
+        (async () => {
+          const final = await res;
+          if (final.ok) {
+            console.log(`${id} -- ok:${final.payload.doc}`);
+          } else {
+            console.log(`${id} -- err:${final.payload.code}`);
+          }
+        })();
+      } else {
+        handles.get(id)!.push({part: payload});
+      }
+    }
   }
-});
+}

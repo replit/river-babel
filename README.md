@@ -48,5 +48,5 @@ id -- repeat.echo_prefix -> prefix
 id -- upload.send ->
 
 # (meta) push to existing stream
-id -- -> payload
+id -- {svc}.{proc} -> payload
 ```
