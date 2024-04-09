@@ -1,5 +1,5 @@
 {
-  "name": "bun-client",
+  "name": "bun-river",
   "module": "index.ts",
   "type": "module",
   "dependencies": {
