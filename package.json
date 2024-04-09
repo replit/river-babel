@@ -1,0 +1,32 @@
+{
+  "name": "river-babel",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dump": "bun dumpSchema.ts",
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@replit/river": "^0.14.0",
+    "@sinclair/typebox": "^0.32.20",
+    "chalk": "^5.3.0",
+    "diff": "^5.2.0",
+    "docker-modem": "^5.0.3",
+    "dockerode": "^4.0.2",
+    "isomorphic-ws": "^5.0.0",
+    "log-update": "^6.0.0",
+    "nanoid": "^5.0.6",
+    "tsx": "^4.7.2",
+    "ws": "^8.16.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/diff": "^5.0.9",
+    "@types/docker-modem": "^3.0.6",
+    "@types/dockerode": "^3.3.28",
+    "@types/node": "^20.11.30",
+    "@types/ws": "^8.5.10",
+    "@types/yargs": "^17.0.32",
+    "typescript": "^5.4.3"
+  }
+}
