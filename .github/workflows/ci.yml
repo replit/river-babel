@@ -1,0 +1,41 @@
+name: Run Tests 
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        client: ['bun']
+        server: ['bun']
+    runs-on: ubuntu-latest 
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - run: npm ci
+
+      - name: Test
+        run: npm run start -- --client ${{ matrix.client }} --server ${{ matrix.server }}
