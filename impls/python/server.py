@@ -8,13 +8,8 @@ from websockets.server import serve
 
 import river
 
-from .protos import service_pb2, service_pb2_grpc, service_river
+from protos import service_pb2, service_pb2_grpc, service_river
 from typing import AsyncIterator, Callable, Dict, Generic, TypeVar
-
-# Load environment variables
-PORT = os.getenv("PORT")
-CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
-SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 
 
 T = TypeVar("T")
@@ -102,7 +97,7 @@ async def start_server() -> None:
     started: asyncio.Future[None] = asyncio.Future()
 
     async def _serve() -> None:
-        async with serve(server.serve, "127.0.0.1", int(PORT)):
+        async with serve(server.serve, "127.0.0.1", 8080):
             started.set_result(None)
             print("server started")
             await done

@@ -12,12 +12,12 @@ from . import service_pb2, service_pb2_grpc
 
 def _KVRequestEncoder(e: service_pb2.KVRequest) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _key = getattr(e, "key", None)
+    _key = getattr(e, 'key', None)
     if _key is not None:
-        d["key"] = _key
-    _value = getattr(e, "value", None)
+        d['key'] = _key
+    _value = getattr(e, 'value', None)
     if _value is not None:
-        d["value"] = _value
+        d['value'] = _value
     return d
 
 
@@ -27,18 +27,18 @@ def _KVRequestDecoder(
     m = service_pb2.KVRequest()
     if d is None:
         return m
-    if d.get("key") is not None:
-        setattr(m, "key", d["key"])
-    if d.get("value") is not None:
-        setattr(m, "value", d["value"])
+    if d.get('key') is not None:
+        setattr(m, 'key', d['key'])
+    if d.get('value') is not None:
+        setattr(m, 'value', d['value'])
     return m
 
 
 def _KVResponseEncoder(e: service_pb2.KVResponse) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _v = getattr(e, "v", None)
+    _v = getattr(e, 'v', None)
     if _v is not None:
-        d["v"] = _v
+        d['v'] = _v
     return d
 
 
@@ -48,16 +48,16 @@ def _KVResponseDecoder(
     m = service_pb2.KVResponse()
     if d is None:
         return m
-    if d.get("v") is not None:
-        setattr(m, "v", d["v"])
+    if d.get('v') is not None:
+        setattr(m, 'v', d['v'])
     return m
 
 
 def _EchoInputEncoder(e: service_pb2.EchoInput) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _str = getattr(e, "str", None)
+    _str = getattr(e, 'str', None)
     if _str is not None:
-        d["str"] = _str
+        d['str'] = _str
     return d
 
 
@@ -67,16 +67,16 @@ def _EchoInputDecoder(
     m = service_pb2.EchoInput()
     if d is None:
         return m
-    if d.get("str") is not None:
-        setattr(m, "str", d["str"])
+    if d.get('str') is not None:
+        setattr(m, 'str', d['str'])
     return m
 
 
 def _EchoOutputEncoder(e: service_pb2.EchoOutput) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _out = getattr(e, "out", None)
+    _out = getattr(e, 'out', None)
     if _out is not None:
-        d["out"] = _out
+        d['out'] = _out
     return d
 
 
@@ -86,16 +86,16 @@ def _EchoOutputDecoder(
     m = service_pb2.EchoOutput()
     if d is None:
         return m
-    if d.get("out") is not None:
-        setattr(m, "out", d["out"])
+    if d.get('out') is not None:
+        setattr(m, 'out', d['out'])
     return m
 
 
 def _UploadInputEncoder(e: service_pb2.UploadInput) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _part = getattr(e, "part", None)
+    _part = getattr(e, 'part', None)
     if _part is not None:
-        d["part"] = _part
+        d['part'] = _part
     return d
 
 
@@ -105,16 +105,16 @@ def _UploadInputDecoder(
     m = service_pb2.UploadInput()
     if d is None:
         return m
-    if d.get("part") is not None:
-        setattr(m, "part", d["part"])
+    if d.get('part') is not None:
+        setattr(m, 'part', d['part'])
     return m
 
 
 def _UploadOutputEncoder(e: service_pb2.UploadOutput) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _doc = getattr(e, "doc", None)
+    _doc = getattr(e, 'doc', None)
     if _doc is not None:
-        d["doc"] = _doc
+        d['doc'] = _doc
     return d
 
 
@@ -124,8 +124,8 @@ def _UploadOutputDecoder(
     m = service_pb2.UploadOutput()
     if d is None:
         return m
-    if d.get("doc") is not None:
-        setattr(m, "doc", d["doc"])
+    if d.get('doc') is not None:
+        setattr(m, 'doc', d['doc'])
     return m
 
 
@@ -136,32 +136,32 @@ def add_TestServicer_to_server(
     rpc_method_handlers: Mapping[
         Tuple[str, str], Tuple[str, river.GenericRpcHandler]
     ] = {
-        ("test", "set"): (
-            "rpc",
+        ('test', 'set'): (
+            'rpc',
             river.rpc_method_handler(
                 servicer.set,
                 _KVRequestDecoder,
                 _KVResponseEncoder,
             ),
         ),
-        ("test", "watch"): (
-            "subscription-stream",
+        ('test', 'watch'): (
+            'subscription-stream',
             river.subscription_method_handler(
                 servicer.watch,
                 _KVRequestDecoder,
                 _KVResponseEncoder,
             ),
         ),
-        ("test", "echo"): (
-            "stream",
+        ('test', 'echo'): (
+            'stream',
             river.stream_method_handler(
                 servicer.echo,
                 _EchoInputDecoder,
                 _EchoOutputEncoder,
             ),
         ),
-        ("test", "upload"): (
-            "upload-stream",
+        ('test', 'upload'): (
+            'upload-stream',
             river.upload_method_handler(
                 servicer.upload,
                 _EchoInputDecoder,

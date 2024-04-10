@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import service_pb2 as service__pb2
+from protos import service_pb2 as service__pb2
 
 
 class TestStub(object):
@@ -15,25 +15,25 @@ class TestStub(object):
             channel: A grpc.Channel.
         """
         self.set = channel.unary_unary(
-                '/replit.river.test.Test/set',
-                request_serializer=service__pb2.KVRequest.SerializeToString,
-                response_deserializer=service__pb2.KVResponse.FromString,
-                )
+            "/replit.river.test.Test/set",
+            request_serializer=service__pb2.KVRequest.SerializeToString,
+            response_deserializer=service__pb2.KVResponse.FromString,
+        )
         self.watch = channel.unary_stream(
-                '/replit.river.test.Test/watch',
-                request_serializer=service__pb2.KVRequest.SerializeToString,
-                response_deserializer=service__pb2.KVResponse.FromString,
-                )
+            "/replit.river.test.Test/watch",
+            request_serializer=service__pb2.KVRequest.SerializeToString,
+            response_deserializer=service__pb2.KVResponse.FromString,
+        )
         self.echo = channel.stream_stream(
-                '/replit.river.test.Test/echo',
-                request_serializer=service__pb2.EchoInput.SerializeToString,
-                response_deserializer=service__pb2.EchoOutput.FromString,
-                )
+            "/replit.river.test.Test/echo",
+            request_serializer=service__pb2.EchoInput.SerializeToString,
+            response_deserializer=service__pb2.EchoOutput.FromString,
+        )
         self.upload = channel.stream_unary(
-                '/replit.river.test.Test/upload',
-                request_serializer=service__pb2.EchoInput.SerializeToString,
-                response_deserializer=service__pb2.EchoOutput.FromString,
-                )
+            "/replit.river.test.Test/upload",
+            request_serializer=service__pb2.EchoInput.SerializeToString,
+            response_deserializer=service__pb2.EchoOutput.FromString,
+        )
 
 
 class TestServicer(object):
@@ -42,126 +42,175 @@ class TestServicer(object):
     def set(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def watch(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def echo(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def upload(self, request_iterator, context):
         """TODO: enable this once python river server support init
         rpc echo_prefix (stream EchoInput) returns (stream EchoOutput);
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
 
 def add_TestServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'set': grpc.unary_unary_rpc_method_handler(
-                    servicer.set,
-                    request_deserializer=service__pb2.KVRequest.FromString,
-                    response_serializer=service__pb2.KVResponse.SerializeToString,
-            ),
-            'watch': grpc.unary_stream_rpc_method_handler(
-                    servicer.watch,
-                    request_deserializer=service__pb2.KVRequest.FromString,
-                    response_serializer=service__pb2.KVResponse.SerializeToString,
-            ),
-            'echo': grpc.stream_stream_rpc_method_handler(
-                    servicer.echo,
-                    request_deserializer=service__pb2.EchoInput.FromString,
-                    response_serializer=service__pb2.EchoOutput.SerializeToString,
-            ),
-            'upload': grpc.stream_unary_rpc_method_handler(
-                    servicer.upload,
-                    request_deserializer=service__pb2.EchoInput.FromString,
-                    response_serializer=service__pb2.EchoOutput.SerializeToString,
-            ),
+        "set": grpc.unary_unary_rpc_method_handler(
+            servicer.set,
+            request_deserializer=service__pb2.KVRequest.FromString,
+            response_serializer=service__pb2.KVResponse.SerializeToString,
+        ),
+        "watch": grpc.unary_stream_rpc_method_handler(
+            servicer.watch,
+            request_deserializer=service__pb2.KVRequest.FromString,
+            response_serializer=service__pb2.KVResponse.SerializeToString,
+        ),
+        "echo": grpc.stream_stream_rpc_method_handler(
+            servicer.echo,
+            request_deserializer=service__pb2.EchoInput.FromString,
+            response_serializer=service__pb2.EchoOutput.SerializeToString,
+        ),
+        "upload": grpc.stream_unary_rpc_method_handler(
+            servicer.upload,
+            request_deserializer=service__pb2.EchoInput.FromString,
+            response_serializer=service__pb2.EchoOutput.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'replit.river.test.Test', rpc_method_handlers)
+        "replit.river.test.Test", rpc_method_handlers
+    )
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class Test(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def set(request,
+    def set(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/replit.river.test.Test/set',
+            "/replit.river.test.Test/set",
             service__pb2.KVRequest.SerializeToString,
             service__pb2.KVResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
 
     @staticmethod
-    def watch(request,
+    def watch(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_stream(
+            request,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/replit.river.test.Test/watch',
+            "/replit.river.test.Test/watch",
             service__pb2.KVRequest.SerializeToString,
             service__pb2.KVResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
 
     @staticmethod
-    def echo(request_iterator,
+    def echo(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.stream_stream(
+            request_iterator,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.stream_stream(request_iterator, target, '/replit.river.test.Test/echo',
+            "/replit.river.test.Test/echo",
             service__pb2.EchoInput.SerializeToString,
             service__pb2.EchoOutput.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
 
     @staticmethod
-    def upload(request_iterator,
+    def upload(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.stream_unary(
+            request_iterator,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.stream_unary(request_iterator, target, '/replit.river.test.Test/upload',
+            "/replit.river.test.Test/upload",
             service__pb2.EchoInput.SerializeToString,
             service__pb2.EchoOutput.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )

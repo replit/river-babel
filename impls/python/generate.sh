@@ -7,3 +7,4 @@ poetry run python -m grpc_tools.protoc \
 ./protos/service.proto
 
 poetry run python -m river.codegen server --output ./protos ./protos/service.proto 
+poetry run python -m river.codegen client --output ./protos/client_schema.py --client-name TestCient ../../schema.json

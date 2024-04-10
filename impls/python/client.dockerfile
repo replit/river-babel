@@ -6,15 +6,12 @@ WORKDIR /usr/src/river
 
 RUN pip install poetry==1.6.1 && poetry config virtualenvs.create false
 
-COPY pyproject.toml /usr/src/river/
-COPY poetry.lock /usr/src/river/
-
+COPY pyproject.toml .
+COPY poetry.lock .
+COPY ./river-python .
 
 RUN poetry install
 
-COPY ./ /usr/src/river/
+COPY ./ .
 
-# Update package lists, install nodejs, npm, and protoc
-RUN apt-get update && \
-  apt-get install -y nodejs npm protobuf-compiler && \
-  npm install -g pnpm
+CMD ["poetry", "run", "python", "client.py"]

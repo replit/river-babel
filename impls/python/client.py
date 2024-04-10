@@ -5,6 +5,7 @@ from websockets import connect
 from river import (
     Client,
 )
+from protos.client_schema import TestCient, KvSetInput
 
 # Load environment variables
 PORT = os.getenv("PORT")
@@ -16,9 +17,11 @@ SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "0"))
 
 
 async def process_commands():
+    print("start python river client")
     uri = f"ws://river-server:{PORT}"
     async with connect(uri) as websocket:
         client = Client(websocket)
+        test_client = TestCient(client)
         # Assuming service definitions are set up correctly within the Client instance
         # and that it implements methods similarly named to the TypeScript example
 
@@ -43,7 +46,7 @@ async def process_commands():
                 # Assuming 'kv' is a valid service and 'set' a procedure within it
                 # This will likely require adapting to your specific service definitions
                 # and client library capabilities
-                res = await client.kv.set(k, int(v))
+                res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
                 if res["ok"]:
                     print(f"{id_} -- ok:{res['payload']['v']}")
                 else:
