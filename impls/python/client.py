@@ -8,6 +8,8 @@ from river import (
 )
 from protos.client_schema import (
     KvWatchOutput,
+    RepeatEchoInput,
+    RepeatEchoOutput,
     TestCient,
     KvSetInput,
     KvWatchInput,
@@ -85,7 +87,13 @@ async def process_commands():
                         )
                 elif svc == "repeat":
                     if proc == "echo":
-                        print(f"{id_} -- ok:{payload}")
+                        if id_ not in input_streams:
+                            input_streams[id_] = asyncio.Queue()
+                            tasks[id_] = asyncio.create_task(
+                                handle_echo(id_, test_client)
+                            )
+                        else:
+                            await input_streams[id_].put(payload)
                 elif svc == "upload":
                     if proc == "send":
                         if id_ not in input_streams:
@@ -140,6 +148,28 @@ async def handle_upload(id_: str, test_client: TestCient):
     try:
         result = await test_client.upload.send(upload_iterator())
         await print_result(result)
+    except Exception as e:
+        print(f"{id_} -- err:{e}")
+
+
+async def handle_echo(id_: str, test_client: TestCient):
+
+    async def upload_iterator() -> AsyncIterator[str]:
+        while True:
+            item = await input_streams[id_].get()
+            if item == "EOF":  # Use a special EOF marker to break the loop
+                break
+            yield RepeatEchoInput(str=item)
+
+    def print_result(result):
+        if isinstance(result, RepeatEchoOutput):
+            print(f"{id_} -- ok:{result.out}")
+        else:  # Assuming this handles both RiverError and exceptions
+            print(f"{id_} -- err:{result.code}")
+
+    try:
+        async for v in await test_client.repeat.echo(upload_iterator()):
+            print_result(v)
     except Exception as e:
         print(f"{id_} -- err:{e}")
 

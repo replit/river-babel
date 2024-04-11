@@ -1,0 +1,38 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Debug Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "purpose": [
+                "debug-test"
+            ],
+            "env": {
+                // pytest-cov breaks debugging breakpoints
+                "PYTEST_ADDOPTS": "--no-cov"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: FastAPI",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "chat.main:app",
+                "--reload"
+            ],
+            "env": {
+                "PYTEST_ADDOPTS": "--no-cov"
+            },
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}

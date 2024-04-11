@@ -6,6 +6,7 @@ from typing import (
     Awaitable,
     Callable,
     Coroutine,
+    Dict,
     Iterable,
     Literal,
     Mapping,
@@ -148,6 +149,24 @@ class GrpcContext(grpc.aio.ServicerContext):
         raise grpc.RpcError()
 
 
+def get_response_or_error_payload(
+    response: Any, response_serializer: Callable[[ResponseType], Any]
+) -> Dict:
+    if isinstance(response, RiverError):
+        return {
+            "ok": False,
+            "payload": {
+                "code": response.code,
+                "message": response.message,
+            },
+        }
+    else:
+        return {
+            "ok": True,
+            "payload": response_serializer(response),
+        }
+
+
 def rpc_method_handler(
     method: Callable[[RequestType, grpc.aio.ServicerContext], Awaitable[ResponseType]],
     request_deserializer: Callable[[str], RequestType],
@@ -163,10 +182,7 @@ def rpc_method_handler(
             request = request_deserializer(await input.get())
             response = await method(request, context)
             await output.put(
-                {
-                    "ok": True,
-                    "payload": response_serializer(response),
-                }
+                get_response_or_error_payload(response, response_serializer)
             )
         except grpc.RpcError:
             await output.put(
@@ -208,16 +224,12 @@ def subscription_method_handler(
         input: Channel[Any],
         output: Channel[Any],
     ) -> None:
-        logging.error("### subscription_method_handler")
         try:
             context = GrpcContext(peer)
             request = request_deserializer(await input.get())
             async for response in method(request, context):
                 await output.put(
-                    {
-                        "ok": True,
-                        "payload": response_serializer(response),
-                    }
+                    get_response_or_error_payload(response, response_serializer)
                 )
         except grpc.RpcError:
             await output.put(
@@ -274,12 +286,9 @@ def upload_method_handler(
 
             async def _convert_outputs() -> None:
                 try:
-                    item = await method(request, context)
+                    response = await method(request, context)
                     await output.put(
-                        {
-                            "ok": True,
-                            "payload": response_serializer(item),
-                        }
+                        get_response_or_error_payload(response, response_serializer)
                     )
                 except Exception as e:
                     print("upload caught exception", e)
@@ -346,10 +355,7 @@ def stream_method_handler(
                 try:
                     async for item in response:
                         await output.put(
-                            {
-                                "ok": True,
-                                "payload": response_serializer(item),
-                            }
+                            get_response_or_error_payload(item, response_serializer)
                         )
                 finally:
                     output.close()

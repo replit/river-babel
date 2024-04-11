@@ -499,6 +499,7 @@ class Client:
                             f"Error during subscription error deserialization: {item}"
                         )
                     continue
+                logging.error(f"yielding response :##### {item['payload']}")
                 yield response_deserializer(item["payload"])
         except Exception as e:
             # Log the error and yield an appropriate error response

@@ -4,6 +4,7 @@ import os.path
 import subprocess
 from typing import Any, AsyncIterator
 
+from river.error_schema import RiverError
 from websockets.server import serve
 
 import river
@@ -36,7 +37,7 @@ class Observable(Generic[T]):
         return lambda: self.listeners.remove(listener)
 
 
-class kvServicer(service_pb2_grpc.kvServicer):
+class KvServicer(service_pb2_grpc.kvServicer):
 
     def __init__(self):
         self.kv: Dict[str, Observable[int]] = {}
@@ -55,11 +56,11 @@ class kvServicer(service_pb2_grpc.kvServicer):
 
     async def watch(
         self, request: service_pb2.KVRequest, context: Any
-    ) -> AsyncIterator[service_pb2.KVResponse]:
+    ) -> AsyncIterator[service_pb2.KVResponse | RiverError]:
         key = request.k
         value = request.v
         if key not in self.kv:
-            self.kv[key] = Observable(value)
+            yield RiverError(code="NOT_FOUND", message=f"Key {key} not found")
         observable = self.kv[key]
 
         queue = asyncio.Queue()
@@ -76,7 +77,7 @@ class kvServicer(service_pb2_grpc.kvServicer):
             unsubscribe()
 
 
-class uploadServicer(service_pb2_grpc.uploadServicer):
+class UploadServicer(service_pb2_grpc.uploadServicer):
 
     async def send(
         self, request_iterator: AsyncIterator[service_pb2.UploadInput], context
@@ -89,14 +90,25 @@ class uploadServicer(service_pb2_grpc.uploadServicer):
         return service_pb2.UploadOutput(doc=doc)
 
 
+class RepeatServicer(service_pb2_grpc.repeatServicer):
+
+    async def echo(
+        self, request_iterator: AsyncIterator[service_pb2.EchoInput], context
+    ) -> AsyncIterator[service_pb2.EchoOutput]:
+        async for request in request_iterator:
+            yield service_pb2.EchoOutput(out=request.str)
+
+
 async def start_server() -> None:
     logging.error("started server")
 
-    kv_servicer = kvServicer()
-    upload_servicer = uploadServicer()
     server = river.Server()
+    kv_servicer = KvServicer()
     service_river.add_kvServicer_to_server(kv_servicer, server)  # type: ignore
+    upload_servicer = UploadServicer()
     service_river.add_uploadServicer_to_server(upload_servicer, server)  # type: ignore
+    repeat_servicer = RepeatServicer()
+    service_river.add_repeatServicer_to_server(repeat_servicer, server)  # type: ignore
     done: asyncio.Future[None] = asyncio.Future()
     started: asyncio.Future[None] = asyncio.Future()
 

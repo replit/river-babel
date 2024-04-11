@@ -1,0 +1,10 @@
+{
+	"recommendations": [
+		"ms-python.python",
+		"ms-python.black-formatter",
+		"charliermarsh.ruff",
+		"matangover.mypy",
+		"DavidAnson.vscode-markdownlint",
+		"ryanluker.vscode-coverage-gutters"
+	]
+}
