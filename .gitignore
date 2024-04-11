@@ -179,3 +179,5 @@ schema.json
 
 # pyc
 *.pyc
+
+.vscode/
