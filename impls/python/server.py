@@ -1,7 +1,4 @@
 import asyncio
-import os
-import os.path
-import subprocess
 from typing import Any, AsyncIterator
 
 from river.error_schema import RiverError
@@ -12,8 +9,10 @@ import river
 from protos import service_pb2, service_pb2_grpc, service_river
 from typing import AsyncIterator, Callable, Dict, Generic, TypeVar
 import logging
+import os
 
 
+SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 T = TypeVar("T")
 
 
@@ -103,7 +102,7 @@ class RepeatServicer(service_pb2_grpc.repeatServicer):
 async def start_server() -> None:
     logging.error("started server")
 
-    server = river.Server()
+    server = river.Server(server_id=SERVER_TRANSPORT_ID)
     kv_servicer = KvServicer()
     service_river.add_kvServicer_to_server(kv_servicer, server)  # type: ignore
     upload_servicer = UploadServicer()

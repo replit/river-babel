@@ -14,9 +14,9 @@ from .rpc import (
 
 
 class Server(object):
-    def __init__(self) -> None:
+    def __init__(self, server_id: str) -> None:
         self._handlers: Dict[Tuple[str, str], Tuple[str, GenericRpcHandler]] = {}
-        self._server_instance_id = nanoid.generate()
+        self._server_id = server_id or nanoid.generate()
         self._transport_manager = TransportManager()
 
     def add_rpc_handlers(
@@ -28,16 +28,14 @@ class Server(object):
     async def serve(self, websocket: WebSocketServerProtocol) -> None:
         logging.debug("got a client")
         transport = Transport(
-            self._server_instance_id, self._handlers, websocket, self._transport_manager
+            self._server_id, self._handlers, websocket, self._transport_manager
         )
         try:
             await transport.serve()
         except ConnectionClosedError as e:
             logging.debug(f"ConnectionClosedError while serving {e}")
         except Exception as e:
-            logging.error(
-                f"River transport error in server {self._server_instance_id}: {e}"
-            )
+            logging.error(f"River transport error in server {self._server_id}: {e}")
         finally:
             if transport:
                 await transport.close()
