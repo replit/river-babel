@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "dependencies": {
-    "@replit/river": "^0.14.0",
+    "@replit/river": "^0.15.4",
     "json-schema-to-typescript": "^13.1.2",
     "ws": "^8.16.0"
   },

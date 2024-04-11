@@ -75,13 +75,13 @@ async function runSuite(tests: Record<string, Test>) {
 
   for (const [name, test] of Object.entries(tests)) {
     console.log(chalk.yellow(`[${name}] setup`));
-    const serverContainer = await setupContainer(serverImpl, "server");
+    const serverContainer = await setupContainer(clientImpl, serverImpl, "server");
 
     const containers: Record<string, ClientContainer> = {};
     for (const [clientName, { actions, expectedOutput }] of Object.entries(
       test
     )) {
-      const container = await setupContainer(clientImpl, "client", clientName);
+      const container = await setupContainer(clientImpl, serverImpl, "client", clientName);
       containers[clientName] = {
         ...container,
         actions,
