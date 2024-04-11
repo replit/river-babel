@@ -44,9 +44,6 @@ class TransportManager:
 
     async def add_transport(self, transport_id: str, transport: "Transport") -> None:
         transport_to_close = None
-        logging.error(f"######" * 20)
-        logging.error(f"checking transport id {transport_id}")
-        logging.error(f"######" * 20)
         async with self._lock:
             if transport_id in self._transports_by_id:
                 logging.error(
@@ -139,9 +136,7 @@ class Transport(object):
         logging.debug("sent response of stream %r", initial_message.streamId)
         async for payload in output:
             if not is_stream:
-                await self.send_message(
-                    initial_message, ws, ACK_BIT | STREAM_CLOSED_BIT, payload
-                )
+                await self.send_message(initial_message, ws, STREAM_CLOSED_BIT, payload)
                 return
             await self.send_message(initial_message, ws, 0, payload)
         logging.debug("sent an end of stream %r", initial_message.streamId)

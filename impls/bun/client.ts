@@ -54,7 +54,7 @@ for await (const line of rl) {
     if (proc === 'set') {
       const [k, v] = payload.split(' ');
       const res = await client.kv.set.rpc({k, v: parseInt(v)});
-      console.log(`########## bun results ${res} for ${payload}`)
+
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
       } else {

@@ -249,7 +249,7 @@ async def test_close_old_websocket_rpc(server: Server) -> None:
                             client = Client(
                                 websockets_list[i],
                                 use_prefix_bytes=False,
-                                instance_id=f"client-{i}",
+                                client_id=f"client-{i}",
                             )
                             clients.append(client)
                             # We set it to be the same instance for testing

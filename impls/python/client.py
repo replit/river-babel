@@ -36,7 +36,12 @@ async def process_commands():
     logging.error("start python river client")
     uri = f"ws://river-server:{PORT}"
     async with connect(uri) as websocket:
-        client = Client(websocket, use_prefix_bytes=False)
+        client = Client(
+            websocket,
+            use_prefix_bytes=False,
+            client_id=CLIENT_TRANSPORT_ID,
+            server_id=SERVER_TRANSPORT_ID,
+        )
         test_client = TestCient(client)
         try:
             while True:

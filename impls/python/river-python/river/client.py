@@ -41,7 +41,8 @@ class Client:
         self,
         websockets: WebSocketClientProtocol,
         use_prefix_bytes: bool = True,
-        instance_id: Optional[str] = None,
+        client_id: Optional[str] = None,
+        server_id: Optional[str] = None,
     ) -> None:
         self.ws = websockets
         self._tasks = set()
@@ -50,7 +51,8 @@ class Client:
         self._seq_manager = SeqManager()
         self._is_handshaked = False
         self._use_prefix_bytes = use_prefix_bytes
-        self._instance_id = instance_id or "python-client-" + self.generate_nanoid()
+        self._instance_id = client_id or "python-client-" + self.generate_nanoid()
+        self._server_id = server_id or "SERVER"
 
         task = asyncio.create_task(self._handle_messages())
         self._tasks.add(task)
@@ -70,7 +72,7 @@ class Client:
         # close stream
         await self.send_transport_message(
             from_=self._from,
-            to="SERVER",
+            to=self._server_id,
             serviceName=service_name,
             procedureName=procedure_name,
             streamId=stream_id,
@@ -153,7 +155,7 @@ class Client:
         try:
             await self.send_transport_message(
                 from_=self._from,
-                to="SERVER",
+                to=self._server_id,
                 serviceName=None,
                 procedureName=None,
                 streamId=self.generate_nanoid(),
@@ -249,7 +251,7 @@ class Client:
         try:
             await self.send_transport_message(
                 from_=self._from,
-                to="SERVER",
+                to=self._server_id,
                 serviceName=service_name,
                 procedureName=procedure_name,
                 streamId=stream_id,
@@ -311,7 +313,7 @@ class Client:
                 num_sent_messages += 1
                 await self.send_transport_message(
                     from_=self._from,
-                    to="SERVER",
+                    to=self._server_id,
                     serviceName=service_name,
                     procedureName=procedure_name,
                     streamId=stream_id,
@@ -328,7 +330,7 @@ class Client:
                 num_sent_messages += 1
                 await self.send_transport_message(
                     from_=self._from,
-                    to="SERVER",
+                    to=self._server_id,
                     serviceName=service_name,
                     procedureName=procedure_name,
                     streamId=stream_id,
@@ -386,7 +388,7 @@ class Client:
         try:
             await self.send_transport_message(
                 from_=self._from,
-                to="SERVER",
+                to=self._server_id,
                 serviceName=service_name,
                 procedureName=procedure_name,
                 streamId=stream_id,
@@ -440,7 +442,7 @@ class Client:
             if init and init_serializer:
                 await self.send_transport_message(
                     from_=self._from,
-                    to="SERVER",
+                    to=self._server_id,
                     serviceName=service_name,
                     procedureName=procedure_name,
                     streamId=stream_id,
@@ -453,7 +455,7 @@ class Client:
                 first = await anext(request_iter)
                 await self.send_transport_message(
                     from_=self._from,
-                    to="SERVER",
+                    to=self._server_id,
                     serviceName=service_name,
                     procedureName=procedure_name,
                     streamId=stream_id,
@@ -473,7 +475,7 @@ class Client:
                     continue
                 await self.send_transport_message(
                     from_=self._from,
-                    to="SERVER",
+                    to=self._server_id,
                     serviceName=service_name,
                     procedureName=procedure_name,
                     streamId=stream_id,

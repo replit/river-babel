@@ -61,6 +61,7 @@ class KvServicer(service_pb2_grpc.kvServicer):
         value = request.v
         if key not in self.kv:
             yield RiverError(code="NOT_FOUND", message=f"Key {key} not found")
+            return
         observable = self.kv[key]
 
         queue = asyncio.Queue()
