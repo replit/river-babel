@@ -26,26 +26,18 @@ class Server(object):
         self._handlers.update(rpc_handlers)
 
     async def serve(self, websocket: WebSocketServerProtocol) -> None:
-        logging.error("got a client")
+        logging.debug("got a client")
         transport = Transport(
             self._server_instance_id, self._handlers, websocket, self._transport_manager
         )
         try:
             await transport.serve()
         except ConnectionClosedError as e:
-            logging.error(f"ConnectionClosedError" * 50)
-            logging.error(e)
-            logging.error(f"ConnectionClosedError" * 50)
+            logging.debug(f"ConnectionClosedError while serving {e}")
         except Exception as e:
             logging.error(
                 f"River transport error in server {self._server_instance_id}: {e}"
             )
         finally:
-            traceback.print_exc()
-            logging.error("###" * 20)
-            logging.error(
-                f"Closing transport, _client_instance_id : {transport._client_instance_id}"
-            )
-            logging.error("###" * 20)
             if transport:
                 await transport.close()

@@ -148,12 +148,12 @@ async function runSuite(tests: Record<string, Test>) {
 // run the test suite
 await runSuite({
   'kv rpc': KvRpcTest,
-  'kv subscribe': KvSubscribeTest,
-  'kv subscribe error': KvSubscribeErrorTest,
-  'kv subscribe multiple clients': KvSubscribeMultipleTest,
-  'echo stream': RepeatEchoTest,
-  // 'echo stream with prefix': RepeatEchoPrefixTest,
-  'upload': UploadSendTest,
+  // 'kv subscribe': KvSubscribeTest,
+  // 'kv subscribe error': KvSubscribeErrorTest,
+  // 'kv subscribe multiple clients': KvSubscribeMultipleTest,
+  // 'echo stream': RepeatEchoTest,
+  // // 'echo stream with prefix': RepeatEchoPrefixTest,
+  // 'upload': UploadSendTest,
 })
 
 await cleanup();

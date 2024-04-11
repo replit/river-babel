@@ -304,12 +304,10 @@ class Transport(object):
             except IgnoreTransportMessageException:
                 continue
             except InvalidTransportMessageException:
-                logging.error("!!!" * 50)
                 logging.error("Got invalid transport message, closing connection")
                 return
 
             logging.debug("got a message %r", msg)
-            logging.error(f"#### transport message {msg_id} : {msg}")
 
             if not self.is_handshake_success:
                 try:
@@ -331,8 +329,6 @@ class Transport(object):
             except IgnoreTransportMessageException:
                 continue
             except InvalidTransportMessageException:
-                logging.error("---" * 50)
-                logging.error("Got invalid transport message, closing connection")
                 return
             if msg.controlFlags & ACK_BIT != 0:
                 # Ignore ack messages.
@@ -341,13 +337,11 @@ class Transport(object):
             stream = self.streams.get(msg.streamId, None)
             if msg.controlFlags & STREAM_OPEN_BIT != 0:
                 if not msg.serviceName or not msg.procedureName:
-                    logging.error("---" * 50)
                     logging.warning("no service or procedure name in %r", msg)
                     return
                 key = (msg.serviceName, msg.procedureName)
                 handler = self._handlers.get(key, None)
                 if not handler:
-                    logging.error("---" * 50)
                     logging.exception(
                         "No handler for %s handlers : " f"{self._handlers.keys()}",
                         key,
@@ -398,9 +392,6 @@ class Transport(object):
                 if stream:
                     stream.close()
                 del self.streams[msg.streamId]
-        logging.error("websocket" * 50)
-        logging.error(f"websocket closed normally : {websocket}")
-        logging.error("websocket" * 50)
 
     async def serve(self) -> None:
         try:
@@ -409,22 +400,15 @@ class Transport(object):
                     await self.handle_messages_from_ws(self.websocket, tg)
                 except ConnectionClosedError as e:
                     # This is fine.
-                    logging.error("Error" * 20)
-                    logging.error(f"{e}")
-                    logging.error("Error" * 20)
+                    logging.debug(f"ConnectionClosedError while serving: {e}")
                     pass
                 except FailedSendingMessageException as e:
                     # Expected error if the connection is closed.
-                    logging.error("Error" * 20)
-                    logging.error(f"{e}")
-                    logging.error("Error" * 20)
+                    logging.debug(f"FailedSendingMessageException while serving: {e}")
                     pass
                 except Exception:
                     logging.exception("caught exception at message iterator")
                 finally:
-                    logging.error("####" * 20)
-                    logging.error(f"closing trasnport : {self._client_instance_id}")
-                    logging.error("####" * 20)
                     await self.close()
         except ExceptionGroup as eg:
             _, unhandled = eg.split(lambda e: isinstance(e, ConnectionClosedError))
@@ -434,9 +418,6 @@ class Transport(object):
                 )
 
     async def close(self) -> None:
-        logging.error("close" * 50)
-        logging.error("Closing transport")
-        logging.error("close" * 50)
         for previous_input in self.streams.values():
             previous_input.close()
         self.streams.clear()
