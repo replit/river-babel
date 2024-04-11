@@ -1,23 +1,25 @@
 import asyncio
+import logging
 import os
+import re
 import sys
-from websockets import connect
+from typing import AsyncIterator, Dict
+
 from replit_river import (
     Client,
 )
+from websockets import connect
+
 from protos.client_schema import (
+    KvSetInput,
+    KvWatchInput,
     KvWatchOutput,
     RepeatEchoInput,
     RepeatEchoOutput,
     TestCient,
-    KvSetInput,
-    KvWatchInput,
     UploadSendInput,
     UploadSendOutput,
 )
-import logging
-import re
-from typing import Dict, AsyncIterator
 
 # Load environment variables
 PORT = os.getenv("PORT")
@@ -53,9 +55,6 @@ async def process_commands():
                 # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}1 -- upload.send ->
                 if "}" in line:
                     line = line[line.index("}") + 1 :]
-                logging.error("###" * 50)
-                logging.error(f"line : {line}")
-                logging.error("###" * 50)
 
                 pattern = (
                     r"(?P<id>\w+) -- (?P<svc>\w+)\.(?P<proc>\w+) -> ?(?P<payload>.*)"
