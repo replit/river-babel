@@ -76,12 +76,27 @@ class kvServicer(service_pb2_grpc.kvServicer):
             unsubscribe()
 
 
+class uploadServicer(service_pb2_grpc.uploadServicer):
+
+    async def send(
+        self, request_iterator: AsyncIterator[service_pb2.UploadInput], context
+    ) -> service_pb2.UploadOutput:
+        doc = ""
+        async for request in request_iterator:
+            if request.part == "EOF":
+                break
+            doc += request.part
+        return service_pb2.UploadOutput(doc=doc)
+
+
 async def start_server() -> None:
     logging.error("started server")
 
     kv_servicer = kvServicer()
+    upload_servicer = uploadServicer()
     server = river.Server()
     service_river.add_kvServicer_to_server(kv_servicer, server)  # type: ignore
+    service_river.add_uploadServicer_to_server(upload_servicer, server)  # type: ignore
     done: asyncio.Future[None] = asyncio.Future()
     started: asyncio.Future[None] = asyncio.Future()
 
