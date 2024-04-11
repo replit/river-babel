@@ -7,6 +7,7 @@ from river import (
     Client,
 )
 from protos.client_schema import (
+    KvWatchOutput,
     TestCient,
     KvSetInput,
     KvWatchInput,
@@ -26,7 +27,7 @@ HEARTBEATS_TO_DEAD = int(os.getenv("HEARTBEATS_TO_DEAD", "0"))
 SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "0"))
 
 input_streams: Dict[str, asyncio.Queue] = {}
-upload_tasks: Dict[str, asyncio.Task] = {}
+tasks: Dict[str, asyncio.Task] = {}
 
 
 async def process_commands():
@@ -35,69 +36,90 @@ async def process_commands():
     async with connect(uri) as websocket:
         client = Client(websocket, use_prefix_bytes=False)
         test_client = TestCient(client)
-        # Assuming service definitions are set up correctly within the Client instance
-        # and that it implements methods similarly named to the TypeScript example
-        while True:
-            line = await asyncio.get_event_loop().run_in_executor(
-                None, sys.stdin.readline
-            )
-            if not line:
-                break
-            # sometimes the line is like this
-            # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}1 -- upload.send ->
-            if "}" in line:
-                line = line[line.index("}") + 1 :]
-            logging.error("###" * 50)
-            logging.error(f"line : {line}")
-            logging.error("###" * 50)
+        try:
+            while True:
+                line = await asyncio.get_event_loop().run_in_executor(
+                    None, sys.stdin.readline
+                )
+                if not line:
+                    break
+                # sometimes the line is like this
+                # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}1 -- upload.send ->
+                if "}" in line:
+                    line = line[line.index("}") + 1 :]
+                logging.error("###" * 50)
+                logging.error(f"line : {line}")
+                logging.error("###" * 50)
 
-            pattern = r"(?P<id>\w+) -- (?P<svc>\w+)\.(?P<proc>\w+) -> ?(?P<payload>.*)"
+                pattern = (
+                    r"(?P<id>\w+) -- (?P<svc>\w+)\.(?P<proc>\w+) -> ?(?P<payload>.*)"
+                )
 
-            # Perform the match
-            match = re.match(pattern, line)
+                # Perform the match
+                match = re.match(pattern, line)
 
-            # Check if the match was successful and if groups are present
-            if not match:
-                print("FATAL: invalid command", line)
-                sys.exit(1)
+                # Check if the match was successful and if groups are present
+                if not match:
+                    print("FATAL: invalid command", line)
+                    sys.exit(1)
 
-            # Extract the named groups
-            id_ = match.group("id")
-            svc = match.group("svc")
-            proc = match.group("proc")
-            payload = match.group("payload")
+                # Extract the named groups
+                id_ = match.group("id")
+                svc = match.group("svc")
+                proc = match.group("proc")
+                payload = match.group("payload")
 
-            # Example handling for a 'kv.set' command
-            if svc == "kv":
-                k, v = payload.split(" ")
-                if proc == "set":
-                    try:
-                        res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
-                        print(f"{id_} -- ok:{res.v}")
-                    except Exception as e:
-                        print(f"{id_} -- err:{e}")
-                elif proc == "watch":
-                    res = await test_client.kv.watch(KvWatchInput(k=payload))
-                    async for v in res:
-                        print(f"{id_} -- ok:{v.v}")
-            elif svc == "repeat":
-                if proc == "echo":
-                    print(f"{id_} -- ok:{payload}")
-            elif svc == "upload":
-                if proc == "send":
-                    if id_ not in input_streams:
-                        input_streams[id_] = asyncio.Queue()
-                        upload_tasks[id_] = asyncio.create_task(
-                            handle_upload(id_, test_client)
+                # Example handling for a 'kv.set' command
+                if svc == "kv":
+                    if proc == "set":
+                        k, v = payload.split(" ")
+                        try:
+                            res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
+                            print(f"{id_} -- ok:{res.v}")
+                        except Exception as e:
+                            print(f"{id_} -- err:{e}")
+                    elif proc == "watch":
+                        k = payload
+                        tasks[id_] = asyncio.create_task(
+                            handle_watch(id_, k, test_client)
                         )
-                    else:
-                        await input_streams[id_].put(payload)
+                elif svc == "repeat":
+                    if proc == "echo":
+                        print(f"{id_} -- ok:{payload}")
+                elif svc == "upload":
+                    if proc == "send":
+                        if id_ not in input_streams:
+                            input_streams[id_] = asyncio.Queue()
+                            tasks[id_] = asyncio.create_task(
+                                handle_upload(id_, test_client)
+                            )
+                        else:
+                            await input_streams[id_].put(payload)
 
-                        if payload == "EOF":
-                            # Wait for the upload task to complete once EOF is sent
-                            await upload_tasks[id_]
-                            upload_tasks.pop(id_, None)  # Cleanup task reference
-                            input_streams.pop(id_, None)  # Cleanup queue reference
+                            if payload == "EOF":
+                                # Wait for the upload task to complete once EOF is sent
+                                await tasks[id_]
+                                tasks.pop(id_, None)  # Cleanup task reference
+                                input_streams.pop(id_, None)  # Cleanup queue reference
+        finally:
+            for task in tasks.values():
+                task.cancel()
+            tasks.clear()
+
+
+async def handle_watch(
+    id_: str,
+    k: str,
+    test_client: TestCient,
+):
+    try:
+        async for v in await test_client.kv.watch(KvWatchInput(k=k)):
+            if isinstance(v, KvWatchOutput):
+                print(f"{id_} -- ok:{v.v}")
+            else:
+                print(f"{id_} -- err:{v.code}")
+    except Exception as e:
+        print(f"{id_} -- err:{e}")
 
 
 async def handle_upload(id_: str, test_client: TestCient):

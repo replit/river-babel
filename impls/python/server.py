@@ -24,13 +24,11 @@ class Observable(Generic[T]):
     def get(self) -> T:
         return self.value
 
-    def set(self, value: T):
+    async def set(self, value: T):
         new_value = value
         self.value = new_value
         for listener in self.listeners:
-            asyncio.run_coroutine_threadsafe(
-                listener(new_value), asyncio.get_event_loop()
-            )
+            await listener(new_value)
 
     async def observe(self, listener: Callable[[T], None]):
         self.listeners.add(listener)
@@ -50,7 +48,9 @@ class kvServicer(service_pb2_grpc.kvServicer):
         if key not in self.kv:
             self.kv[key] = Observable(value)
         else:
-            self.kv[key].set(value)
+            await self.kv[key].set(value)
+        # wait slightly to let the watch response be sent first
+        await asyncio.sleep(0.1)
         return service_pb2.KVResponse(v=self.kv[key].get())
 
     async def watch(
