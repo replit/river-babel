@@ -5,9 +5,9 @@ import logging
 from typing import Any, Dict, List, Literal, Optional, Mapping, Union, Tuple
 
 from pydantic import BaseModel, Field, parse_obj_as
-from river.error_schema import RiverError
+from replit_river.error_schema import RiverError
 
-import river
+import replit_river as river
 
 
 class KvSetInput(BaseModel):

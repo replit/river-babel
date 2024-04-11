@@ -1,9 +1,8 @@
 import asyncio
 import os
 import sys
-from river.error_schema import RiverError
 from websockets import connect
-from river import (
+from replit_river import (
     Client,
 )
 from protos.client_schema import (

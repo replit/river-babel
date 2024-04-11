@@ -1,16 +1,13 @@
 import asyncio
-from typing import Any, AsyncIterator
-
-from river.error_schema import RiverError
-from websockets.server import serve
-
-import river
-
-from protos import service_pb2, service_pb2_grpc, service_river
-from typing import AsyncIterator, Callable, Dict, Generic, TypeVar
 import logging
 import os
+from typing import Any, AsyncIterator, Callable, Dict, Generic, TypeVar
 
+import replit_river as river
+from replit_river.error_schema import RiverError
+from websockets.server import serve
+
+from protos import service_pb2, service_pb2_grpc, service_river
 
 SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 T = TypeVar("T")
