@@ -14,17 +14,17 @@ DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 class KVRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    KEY_FIELD_NUMBER: builtins.int
-    VALUE_FIELD_NUMBER: builtins.int
-    key: builtins.str
-    value: builtins.int
+    K_FIELD_NUMBER: builtins.int
+    V_FIELD_NUMBER: builtins.int
+    k: builtins.str
+    v: builtins.int
     def __init__(
         self,
         *,
-        key: builtins.str = ...,
-        value: builtins.int = ...,
+        k: builtins.str = ...,
+        v: builtins.int = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["k", b"k", "v", b"v"]) -> None: ...
 
 global___KVRequest = KVRequest
 

@@ -26,7 +26,7 @@ class Server(object):
         self._handlers.update(rpc_handlers)
 
     async def serve(self, websocket: WebSocketServerProtocol) -> None:
-        logging.debug("got a client")
+        logging.error("got a client")
         transport = Transport(
             self._server_instance_id, self._handlers, websocket, self._transport_manager
         )

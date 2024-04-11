@@ -10,6 +10,7 @@ import river
 
 from protos import service_pb2, service_pb2_grpc, service_river
 from typing import AsyncIterator, Callable, Dict, Generic, TypeVar
+import logging
 
 
 T = TypeVar("T")
@@ -23,8 +24,8 @@ class Observable(Generic[T]):
     def get(self) -> T:
         return self.value
 
-    def set(self, tx: Callable[[T], T]):
-        new_value = tx(self.value)
+    def set(self, value: T):
+        new_value = value
         self.value = new_value
         for listener in self.listeners:
             asyncio.run_coroutine_threadsafe(
@@ -37,8 +38,7 @@ class Observable(Generic[T]):
         return lambda: self.listeners.remove(listener)
 
 
-# Reproduce serviceDefs.ts
-class TestServicer(service_pb2_grpc.TestServicer):
+class kvServicer(service_pb2_grpc.kvServicer):
 
     def __init__(self):
         self.kv: Dict[str, Observable[int]] = {}
@@ -46,18 +46,18 @@ class TestServicer(service_pb2_grpc.TestServicer):
     async def set(
         self, request: service_pb2.KVRequest, context: Any
     ) -> service_pb2.KVResponse:
-        key, value = request.key, request.value
+        key, value = request.k, request.v
         if key not in self.kv:
             self.kv[key] = Observable(value)
         else:
-            self.kv[key].set(lambda _: value)
+            self.kv[key].set(value)
         return service_pb2.KVResponse(v=self.kv[key].get())
 
     async def watch(
         self, request: service_pb2.KVRequest, context: Any
     ) -> AsyncIterator[service_pb2.KVResponse]:
-        key = request.key
-        value = request.value
+        key = request.k
+        value = request.v
         if key not in self.kv:
             self.kv[key] = Observable(value)
         observable = self.kv[key]
@@ -75,31 +75,20 @@ class TestServicer(service_pb2_grpc.TestServicer):
         finally:
             unsubscribe()
 
-    def echo(
-        self, request_iterator: Any, context: Any
-    ) -> AsyncIterator[service_pb2.EchoOutput]:
-        pass
-
-    def upload(
-        self, request_iterator: Any, context: Any
-    ) -> AsyncIterator[service_pb2.EchoOutput]:
-        pass
-
 
 async def start_server() -> None:
-    print("started test")
+    logging.error("started server")
 
-    test_servicer = TestServicer()
+    kv_servicer = kvServicer()
     server = river.Server()
-    service_river.add_TestServicer_to_server(test_servicer, server)  # type: ignore
-    print("Starting River Server")
+    service_river.add_kvServicer_to_server(kv_servicer, server)  # type: ignore
     done: asyncio.Future[None] = asyncio.Future()
     started: asyncio.Future[None] = asyncio.Future()
 
     async def _serve() -> None:
-        async with serve(server.serve, "127.0.0.1", 8080):
+        async with serve(server.serve, "0.0.0.0", 8080):
             started.set_result(None)
-            print("server started")
+            logging.error("started test")
             await done
 
     async with asyncio.TaskGroup() as tg:

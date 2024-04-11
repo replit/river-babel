@@ -12,12 +12,12 @@ from . import service_pb2, service_pb2_grpc
 
 def _KVRequestEncoder(e: service_pb2.KVRequest) -> Dict[str, Any]:
     d: Dict[str, Any] = {}
-    _key = getattr(e, 'key', None)
-    if _key is not None:
-        d['key'] = _key
-    _value = getattr(e, 'value', None)
-    if _value is not None:
-        d['value'] = _value
+    _k = getattr(e, 'k', None)
+    if _k is not None:
+        d['k'] = _k
+    _v = getattr(e, 'v', None)
+    if _v is not None:
+        d['v'] = _v
     return d
 
 
@@ -27,10 +27,10 @@ def _KVRequestDecoder(
     m = service_pb2.KVRequest()
     if d is None:
         return m
-    if d.get('key') is not None:
-        setattr(m, 'key', d['key'])
-    if d.get('value') is not None:
-        setattr(m, 'value', d['value'])
+    if d.get('k') is not None:
+        setattr(m, 'k', d['k'])
+    if d.get('v') is not None:
+        setattr(m, 'v', d['v'])
     return m
 
 
@@ -129,14 +129,14 @@ def _UploadOutputDecoder(
     return m
 
 
-def add_TestServicer_to_server(
-    servicer: service_pb2_grpc.TestServicer,
+def add_kvServicer_to_server(
+    servicer: service_pb2_grpc.kvServicer,
     server: river.Server,
 ) -> None:
     rpc_method_handlers: Mapping[
         Tuple[str, str], Tuple[str, river.GenericRpcHandler]
     ] = {
-        ('test', 'set'): (
+        ('kv', 'set'): (
             'rpc',
             river.rpc_method_handler(
                 servicer.set,
@@ -144,7 +144,7 @@ def add_TestServicer_to_server(
                 _KVResponseEncoder,
             ),
         ),
-        ('test', 'watch'): (
+        ('kv', 'watch'): (
             'subscription-stream',
             river.subscription_method_handler(
                 servicer.watch,
@@ -152,7 +152,18 @@ def add_TestServicer_to_server(
                 _KVResponseEncoder,
             ),
         ),
-        ('test', 'echo'): (
+    }
+    server.add_rpc_handlers(rpc_method_handlers)
+
+
+def add_repeatServicer_to_server(
+    servicer: service_pb2_grpc.repeatServicer,
+    server: river.Server,
+) -> None:
+    rpc_method_handlers: Mapping[
+        Tuple[str, str], Tuple[str, river.GenericRpcHandler]
+    ] = {
+        ('repeat', 'echo'): (
             'stream',
             river.stream_method_handler(
                 servicer.echo,
@@ -160,12 +171,23 @@ def add_TestServicer_to_server(
                 _EchoOutputEncoder,
             ),
         ),
-        ('test', 'upload'): (
+    }
+    server.add_rpc_handlers(rpc_method_handlers)
+
+
+def add_uploadServicer_to_server(
+    servicer: service_pb2_grpc.uploadServicer,
+    server: river.Server,
+) -> None:
+    rpc_method_handlers: Mapping[
+        Tuple[str, str], Tuple[str, river.GenericRpcHandler]
+    ] = {
+        ('upload', 'send'): (
             'upload-stream',
             river.upload_method_handler(
-                servicer.upload,
-                _EchoInputDecoder,
-                _EchoOutputEncoder,
+                servicer.send,
+                _UploadInputDecoder,
+                _UploadOutputEncoder,
             ),
         ),
     }

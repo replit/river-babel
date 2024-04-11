@@ -6,6 +6,8 @@ from river import (
     Client,
 )
 from protos.client_schema import TestCient, KvSetInput
+import logging
+import re
 
 # Load environment variables
 PORT = os.getenv("PORT")
@@ -17,10 +19,10 @@ SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "0"))
 
 
 async def process_commands():
-    print("start python river client")
+    logging.error("start python river client")
     uri = f"ws://river-server:{PORT}"
     async with connect(uri) as websocket:
-        client = Client(websocket)
+        client = Client(websocket, use_prefix_bytes=False)
         test_client = TestCient(client)
         # Assuming service definitions are set up correctly within the Client instance
         # and that it implements methods similarly named to the TypeScript example
@@ -31,28 +33,37 @@ async def process_commands():
             )
             if not line:
                 break
+            logging.error("###" * 50)
+            logging.error(f"line : {line}")
+            logging.error("###" * 50)
 
-            parts = line.strip().split(" -- ")
-            if len(parts) < 4:
-                print("FATAL: invalid command", line, file=sys.stderr)
-                exit(1)
+            pattern = r"(?P<id>\w+) -- (?P<svc>\w+)\.(?P<proc>\w+) -> ?(?P<payload>.*)"
 
-            id_, svc_proc, payload = parts[0], parts[1].split("."), parts[3]
-            svc, proc = svc_proc[0], svc_proc[1]
+            # Perform the match
+            match = re.match(pattern, line)
+
+            # Check if the match was successful and if groups are present
+            if not match:
+                print("FATAL: invalid command", line)
+                sys.exit(1)
+
+            # Extract the named groups
+            id_ = match.group("id")
+            svc = match.group("svc")
+            proc = match.group("proc")
+            payload = match.group("payload")
 
             # Example handling for a 'kv.set' command
             if svc == "kv" and proc == "set":
                 k, v = payload.split(" ")
-                # Assuming 'kv' is a valid service and 'set' a procedure within it
-                # This will likely require adapting to your specific service definitions
-                # and client library capabilities
-                res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
-                if res["ok"]:
-                    print(f"{id_} -- ok:{res['payload']['v']}")
-                else:
-                    print(f"{id_} -- err:{res['payload']['code']}")
-
-            # Additional command handling based on svc and proc values follows here...
+                try:
+                    res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
+                    logging.error("###" * 50)
+                    logging.error(f"{id_} -- ok:{res.v}")
+                    logging.error("###" * 50)
+                    print(f"{id_} -- ok:{res.v}")
+                except Exception as e:
+                    print(f"{id_} -- err:{e}")
 
 
 async def main():

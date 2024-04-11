@@ -162,9 +162,6 @@ def rpc_method_handler(
             context = GrpcContext(peer)
             request = request_deserializer(await input.get())
             response = await method(request, context)
-            logging.error(
-                f"### rpc_method_handler, response : {response_serializer(response),}"
-            )
             await output.put(
                 {
                     "ok": True,

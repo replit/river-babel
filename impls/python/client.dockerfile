@@ -14,4 +14,4 @@ RUN poetry install
 
 COPY ./ .
 
-CMD ["poetry", "run", "python", "client.py"]
+CMD ["poetry", "run", "python", "-u", "client.py"]

@@ -113,7 +113,7 @@ class Transport(object):
             serviceName=initial_message.serviceName,
             procedureName=initial_message.procedureName,
         )
-        logging.debug("sent a message %r", msg)
+        logging.error("sent a message %r", msg)
         try:
             await ws.send(
                 msgpack.packb(
@@ -203,6 +203,9 @@ class Transport(object):
         )
         return handshake_request
 
+    def _formatted_bytes(self, message: bytes) -> str:
+        return " ".join(f"{b:02x}" for b in message)
+
     def _parse_transport_msg(self, message: str | bytes) -> TransportMessage:
         if isinstance(message, str):
             logging.debug(
@@ -211,6 +214,9 @@ class Transport(object):
             )
             raise IgnoreTransportMessageException()
         try:
+            logging.error(
+                f"message : {self._formatted_bytes(message)}",
+            )
             unpacked_message = msgpack.unpackb(message, timestamp=3)
         except (msgpack.UnpackException, msgpack.exceptions.ExtraData):
             logging.exception("received non-msgpack message")
@@ -290,7 +296,9 @@ class Transport(object):
     async def handle_messages_from_ws(
         self, websocket: WebSocketServerProtocol, tg: asyncio.TaskGroup
     ) -> None:
+        msg_id = 0
         async for message in websocket:
+            msg_id += 1
             try:
                 msg = self._parse_transport_msg(message)
             except IgnoreTransportMessageException:
@@ -301,14 +309,14 @@ class Transport(object):
                 return
 
             logging.debug("got a message %r", msg)
-            logging.error(f"#### transport message : {msg}")
+            logging.error(f"#### transport message {msg_id} : {msg}")
 
             if not self.is_handshake_success:
                 try:
                     await self._establish_handshake(msg, websocket)
                     self.is_handshake_success = True
                     self._create_task(self._heartbeat(msg, websocket), tg)
-                    logging.debug(
+                    logging.error(
                         f"handshake success for client_instance_id : {self._client_instance_id}"
                     )
 
@@ -329,7 +337,6 @@ class Transport(object):
             if msg.controlFlags & ACK_BIT != 0:
                 # Ignore ack messages.
                 continue
-            logging.error(f"#### transport message : {msg}")
 
             stream = self.streams.get(msg.streamId, None)
             if msg.controlFlags & STREAM_OPEN_BIT != 0:

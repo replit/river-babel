@@ -7,8 +7,8 @@ syntax = "proto3";
 package replit.river.test;
 
 message KVRequest {
-  string key = 1;
-  int32 value = 2;
+  string k = 1;
+  int32 v = 2;
 }
 
 message KVResponse {
@@ -31,11 +31,15 @@ message UploadOutput {
   string doc = 1;
 }
 
-service Test {
+service kv {
   rpc set (KVRequest) returns (KVResponse);
   rpc watch (KVRequest) returns (stream KVResponse);
+}
+
+service repeat {
   rpc echo (stream EchoInput) returns (stream EchoOutput);
-  // TODO: enable this once python river server support init
-  // rpc echo_prefix (stream EchoInput) returns (stream EchoOutput);
-  rpc upload (stream EchoInput) returns (EchoOutput);
+}
+
+service upload {
+  rpc send (stream UploadInput) returns (UploadOutput);
 }

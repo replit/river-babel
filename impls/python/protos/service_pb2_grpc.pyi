@@ -17,7 +17,7 @@ class _MaybeAsyncIterator(collections.abc.AsyncIterator[_T], collections.abc.Ite
 class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
-class TestStub:
+class kvStub:
     def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
     set: grpc.UnaryUnaryMultiCallable[
         service_pb2.KVRequest,
@@ -29,20 +29,7 @@ class TestStub:
         service_pb2.KVResponse,
     ]
 
-    echo: grpc.StreamStreamMultiCallable[
-        service_pb2.EchoInput,
-        service_pb2.EchoOutput,
-    ]
-
-    upload: grpc.StreamUnaryMultiCallable[
-        service_pb2.EchoInput,
-        service_pb2.EchoOutput,
-    ]
-    """TODO: enable this once python river server support init
-    rpc echo_prefix (stream EchoInput) returns (stream EchoOutput);
-    """
-
-class TestAsyncStub:
+class kvAsyncStub:
     set: grpc.aio.UnaryUnaryMultiCallable[
         service_pb2.KVRequest,
         service_pb2.KVResponse,
@@ -53,20 +40,7 @@ class TestAsyncStub:
         service_pb2.KVResponse,
     ]
 
-    echo: grpc.aio.StreamStreamMultiCallable[
-        service_pb2.EchoInput,
-        service_pb2.EchoOutput,
-    ]
-
-    upload: grpc.aio.StreamUnaryMultiCallable[
-        service_pb2.EchoInput,
-        service_pb2.EchoOutput,
-    ]
-    """TODO: enable this once python river server support init
-    rpc echo_prefix (stream EchoInput) returns (stream EchoOutput);
-    """
-
-class TestServicer(metaclass=abc.ABCMeta):
+class kvServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def set(
         self,
@@ -81,6 +55,22 @@ class TestServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[collections.abc.Iterator[service_pb2.KVResponse], collections.abc.AsyncIterator[service_pb2.KVResponse]]: ...
 
+def add_kvServicer_to_server(servicer: kvServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
+
+class repeatStub:
+    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    echo: grpc.StreamStreamMultiCallable[
+        service_pb2.EchoInput,
+        service_pb2.EchoOutput,
+    ]
+
+class repeatAsyncStub:
+    echo: grpc.aio.StreamStreamMultiCallable[
+        service_pb2.EchoInput,
+        service_pb2.EchoOutput,
+    ]
+
+class repeatServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def echo(
         self,
@@ -88,14 +78,27 @@ class TestServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[collections.abc.Iterator[service_pb2.EchoOutput], collections.abc.AsyncIterator[service_pb2.EchoOutput]]: ...
 
-    @abc.abstractmethod
-    def upload(
-        self,
-        request_iterator: _MaybeAsyncIterator[service_pb2.EchoInput],
-        context: _ServicerContext,
-    ) -> typing.Union[service_pb2.EchoOutput, collections.abc.Awaitable[service_pb2.EchoOutput]]:
-        """TODO: enable this once python river server support init
-        rpc echo_prefix (stream EchoInput) returns (stream EchoOutput);
-        """
+def add_repeatServicer_to_server(servicer: repeatServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
 
-def add_TestServicer_to_server(servicer: TestServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
+class uploadStub:
+    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    send: grpc.StreamUnaryMultiCallable[
+        service_pb2.UploadInput,
+        service_pb2.UploadOutput,
+    ]
+
+class uploadAsyncStub:
+    send: grpc.aio.StreamUnaryMultiCallable[
+        service_pb2.UploadInput,
+        service_pb2.UploadOutput,
+    ]
+
+class uploadServicer(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def send(
+        self,
+        request_iterator: _MaybeAsyncIterator[service_pb2.UploadInput],
+        context: _ServicerContext,
+    ) -> typing.Union[service_pb2.UploadOutput, collections.abc.Awaitable[service_pb2.UploadOutput]]: ...
+
+def add_uploadServicer_to_server(servicer: uploadServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
