@@ -145,12 +145,14 @@ function streamToString(stream: NodeJS.WritableStream): Promise<string> {
 }
 
 export async function setupContainer(
-  impl: string,
+  clientImpl: string,
+  serverImpl: string,
   type: "client" | "server",
-  suffix?: string
+  nameOverride?: string,
 ): Promise<ContainerHandle> {
+  const impl = type === 'client' ? clientImpl : serverImpl;
   const imageName = `river-babel-${impl}-${type}`;
-  const containerName = suffix ? `river-${type}-${suffix}` : `river-${type}`;
+  const containerName = nameOverride ? `river-${nameOverride}` : `river-${type}`;
   const getContainerId = async () => {
     const containers = await docker.listContainers({
       all: true,
@@ -176,8 +178,8 @@ export async function setupContainer(
       OpenStdin: true,
       Env: [
         "PORT=8080",
-        suffix ? `CLIENT_TRANSPORT_ID=${impl}-${type}-${suffix}` : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
-        `SERVER_TRANSPORT_ID=${impl}-server`,
+        nameOverride ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}` : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
+        `SERVER_TRANSPORT_ID=${serverImpl}-server`,
         "HEARTBEAT_MS=1000",
         "HEARTBEATS_TO_DEAD=2",
         "SESSION_DISCONNECT_GRACE_MS=5000",
@@ -187,8 +189,8 @@ export async function setupContainer(
   }
 
   container ??= docker.getContainer(containerId);
-  const [stdin, stdout, stderr] = await containerStreams(container);
   await container.start();
+  const [stdin, stdout, stderr] = await containerStreams(container);
 
   const removeContainerIfExists = async () => {
     stdout.end();
