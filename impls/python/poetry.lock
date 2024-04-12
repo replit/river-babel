@@ -741,13 +741,13 @@ dev = ["pre-commit", "pytest-asyncio", "tox"]
 
 [[package]]
 name = "replit-river"
-version = "0.1.2"
+version = "0.1.5"
 description = "Replit river toolkit for Python"
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "replit_river-0.1.2-py3-none-any.whl", hash = "sha256:7878be3b0e2ea2b62379781dabf72cdb3bae67d277e65a1326de195604fd7a3f"},
-    {file = "replit_river-0.1.2.tar.gz", hash = "sha256:7a4c60dd28f8205b94f9f1ebf98254ef964d1e17e4708758d826c807010fd060"},
+    {file = "replit_river-0.1.5-py3-none-any.whl", hash = "sha256:aa601531c3cbc94e8e997c61976c99237599f5cf07aae3e28045d3b86b755040"},
+    {file = "replit_river-0.1.5.tar.gz", hash = "sha256:a9a673cec930aaa0a1d4552940790a994143a073810c1d88a6cd12644a3f3b43"},
 ]
 
 [package.dependencies]
@@ -790,18 +790,18 @@ files = [
 
 [[package]]
 name = "setuptools"
-version = "69.2.0"
+version = "69.3.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "setuptools-69.2.0-py3-none-any.whl", hash = "sha256:c21c49fb1042386df081cb5d86759792ab89efca84cf114889191cd09aacc80c"},
-    {file = "setuptools-69.2.0.tar.gz", hash = "sha256:0ff4183f8f42cd8fa3acea16c45205521a4ef28f73c6391d8a25e92893134f2e"},
+    {file = "setuptools-69.3.0-py3-none-any.whl", hash = "sha256:48c518e350470d98cfa2944a31edbfc897c9a7d8fa4847da66d89f0f5fb64b57"},
+    {file = "setuptools-69.3.tar.gz", hash = "sha256:e1fd0ca7ba442e4be8a415dcca867b8018777dd5f95f4492bb4dc7d77dbc8bd8"},
 ]
 
 [package.extras]
-docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
-testing = ["build[virtualenv]", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mypy (==1.9)", "packaging (>=23.2)", "pip (>=19.1)", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier"]
+testing = ["build[virtualenv]", "filelock (>=3.4.0)", "importlib-metadata", "ini2toml[lite] (>=0.9)", "jaraco.develop (>=7.21)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "mypy (==1.9)", "packaging (>=23.2)", "pip (>=19.1)", "pytest (>=6,!=8.1.1)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-home (>=0.5)", "pytest-mypy", "pytest-perf", "pytest-ruff (>=0.2.1)", "pytest-timeout", "pytest-xdist (>=3)", "tomli", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
 testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "packaging (>=23.2)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
 [[package]]
@@ -910,4 +910,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ff437f560935d9bdea1c44bea2ca2e48fe58b158e617ccffb5d93e2e6afef3f4"
+content-hash = "eb1c9f93a8c054900b1c54769846dd83a7cdd10ffeda7357079e8e014bb4134c"

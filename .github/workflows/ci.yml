@@ -12,8 +12,8 @@ jobs:
   build-and-test:
     strategy:
       matrix:
-        client: ['bun']
-        server: ['bun']
+        client: ['bun', 'python']
+        server: ['bun', 'python']
     runs-on: ubuntu-latest 
     permissions:
       contents: write
