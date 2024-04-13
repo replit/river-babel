@@ -8,7 +8,7 @@ import {
 import { diffLines } from "diff";
 import { KvRpcTest } from "./tests/kv_rpc";
 import { KvSubscribeErrorTest, KvSubscribeMultipleTest, KvSubscribeTest } from "./tests/kv_subscribe";
-import { NetworkDisconnectTest, BufferRequestTest, SubscriptionDisconnectTest, SubscriptionReconnectTest } from "./tests/test_network";
+import { NetworkDisconnectTest, BufferRequestTest, SubscriptionDisconnectTest, SubscriptionReconnectTest, OneClientDisconnectTest } from "./tests/test_network";
 import { buildImage, cleanup, setupNetwork, type ContainerHandle, applyAction, setupContainer, type ClientContainer } from "./src/docker";
 import { RepeatEchoPrefixTest, RepeatEchoTest } from "./tests/repeat_stream";
 import { UploadSendTest } from "./tests/send_upload";
@@ -160,6 +160,7 @@ await runSuite({
   "network buffer requests": BufferRequestTest,
   "network subscription disconnect": SubscriptionDisconnectTest,
   "network subscription reconnect": SubscriptionReconnectTest,
+  "network multi clients one disconnect": OneClientDisconnectTest
 })
 
 await cleanup();
