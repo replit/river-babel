@@ -8,9 +8,9 @@ import {
 import { diffLines } from "diff";
 import { KvRpcTest } from "./tests/kv_rpc";
 import { KvSubscribeErrorTest, KvSubscribeMultipleTest, KvSubscribeTest } from "./tests/kv_subscribe";
-import { NetworkDisconnectTest, BufferRequestTest, SubscriptionDisconnectTest, SubscriptionReconnectTest, OneClientDisconnectTest } from "./tests/test_network";
-import { buildImage, cleanup, setupNetwork, type ContainerHandle, applyAction, setupContainer, type ClientContainer } from "./src/docker";
-import { RepeatEchoPrefixTest, RepeatEchoTest } from "./tests/repeat_stream";
+import { ShortConnectionDisconnectTest, BuffersWhileDisconnectedTest, SubscriptionDisconnectTest, SubscriptionReconnectTest, TwoClientDisconnectTest, ProceduresGetDisconnectNotifs, SurvivesTransientNetworkBlips, SessionDisconnectTest } from "./tests/test_network";
+import { buildImage, cleanup, setupNetwork, applyAction, setupContainer, type ClientContainer } from "./src/docker";
+import { RepeatEchoTest } from "./tests/repeat_stream";
 import { UploadSendTest } from "./tests/send_upload";
 
 const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
@@ -156,11 +156,14 @@ await runSuite({
   // TODO: python server not working with init now
   // 'echo stream with prefix': RepeatEchoPrefixTest,
   'upload': UploadSendTest,
-  "network disconnect ": NetworkDisconnectTest,
-  "network buffer requests": BufferRequestTest,
-  "network subscription disconnect": SubscriptionDisconnectTest,
-  "network subscription reconnect": SubscriptionReconnectTest,
-  "network multi clients one disconnect": OneClientDisconnectTest
+  'survives transient network blip': SurvivesTransientNetworkBlips,
+  'survives short connection disconnect': ShortConnectionDisconnectTest,
+  'survives session disconnect': SessionDisconnectTest,
+  'procedures get disconnect notifs':ProceduresGetDisconnectNotifs,
+  'network buffer requests': BuffersWhileDisconnectedTest,
+  'network subscription disconnect': SubscriptionDisconnectTest,
+  'network subscription reconnect': SubscriptionReconnectTest,
+  'network multi clients one disconnect': TwoClientDisconnectTest
 })
 
 await cleanup();

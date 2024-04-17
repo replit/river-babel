@@ -4,7 +4,7 @@ import readline from 'node:readline';
 import { createClient, type Server } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
-import { bindLogger, log, setLevel } from "@replit/river/logging";
+import { bindLogger, setLevel } from "@replit/river/logging";
 import type { serviceDefs } from "./serviceDefs";
 import type { Pushable } from "it-pushable";
 

@@ -7,6 +7,7 @@ import DockerModem from "docker-modem";
 import logUpdate from "log-update";
 import { PassThrough } from "stream";
 import { serializeInvokeAction, type Action, type ExpectedOutputEntry } from "./actions";
+import { HEARTBEATS_TO_DEAD, HEARTBEAT_MS, SESSION_DISCONNECT_GRACE } from "../tests/test_network";
 
 const docker = new Docker();
 const modem = new DockerModem();
@@ -180,9 +181,9 @@ export async function setupContainer(
         "PORT=8080",
         nameOverride ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}` : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
         `SERVER_TRANSPORT_ID=${serverImpl}-server`,
-        "HEARTBEAT_MS=1000",
-        "HEARTBEATS_TO_DEAD=2",
-        "SESSION_DISCONNECT_GRACE_MS=5000",
+        `HEARTBEAT_MS=${HEARTBEAT_MS}`,
+        `HEARTBEATS_TO_DEAD=${HEARTBEATS_TO_DEAD}`,
+        `SESSION_DISCONNECT_GRACE_MS=${SESSION_DISCONNECT_GRACE}`,
       ],
     });
     containerId = container.id;
