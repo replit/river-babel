@@ -40,10 +40,10 @@ process
     process.exit(1);
   });
 
-  process.on('SIGINT', async () => {
-    await cleanup();
-    process.exit(1);
-  });
+process.on('SIGINT', async () => {
+  await cleanup();
+  process.exit(1);
+});
 
 function constructDiffString(expected: string, actual: string): [string, boolean] {
   const diff = diffLines(expected.trim(), actual.trim(), { ignoreWhitespace: true });
@@ -58,13 +58,13 @@ function constructDiffString(expected: string, actual: string): [string, boolean
       (part.added
         ? chalk.green(part.value)
         : part.removed
-        ? chalk.red(part.value)
-        : part.value)
+          ? chalk.red(part.value)
+          : part.value)
     );
   }, ""), hasDiff];
 }
 
-async function runSuite(tests: Record<string, Test>) {
+async function runSuite(tests: Record<string, Test>): Promise<boolean> {
   // setup
   await buildImage(clientImpl, "client");
   await buildImage(serverImpl, "server");
@@ -113,12 +113,12 @@ async function runSuite(tests: Record<string, Test>) {
         .join("\n");
       const actualOutput = await client.stdout;
       const [diff, hasDiff] = constructDiffString(expectedOutput, actualOutput);
-      
+
       if (hasDiff) {
         testFailed = true;
         console.log(chalk.red(`[${name}] ${clientName} `) + chalk.black.bgRed(` FAIL `));
         console.log(diff + "\n");
-  
+
         console.log(chalk.yellow(`[${name}] ${clientName} logs`));
         console.log(await client.stderr);
       } else {
@@ -141,13 +141,14 @@ async function runSuite(tests: Record<string, Test>) {
   if (testsFailed.length) {
     console.log(chalk.red(`failed:`));
     testsFailed.forEach((name) => console.log(chalk.red(`- ${name}`)));
+    return false;
   }
-  
-  console.log();
+
+  return true;
 }
 
 // run the test suite
-await runSuite({
+const pass = await runSuite({
   'kv rpc': KvRpcTest,
   'kv subscribe': KvSubscribeTest,
   'kv subscribe error': KvSubscribeErrorTest,
@@ -159,7 +160,7 @@ await runSuite({
   'survives transient network blip': SurvivesTransientNetworkBlips,
   'survives short connection disconnect': ShortConnectionDisconnectTest,
   'survives session disconnect': SessionDisconnectTest,
-  'procedures get disconnect notifs':ProceduresGetDisconnectNotifs,
+  'procedures get disconnect notifs': ProceduresGetDisconnectNotifs,
   'network buffer requests': BuffersWhileDisconnectedTest,
   'network subscription disconnect': SubscriptionDisconnectTest,
   'network subscription reconnect': SubscriptionReconnectTest,
@@ -167,3 +168,7 @@ await runSuite({
 })
 
 await cleanup();
+
+if (!pass) {
+  process.exit(1)
+}
