@@ -6,12 +6,11 @@ import {
   serializeExpectedOutputEntry,
 } from "./src/actions";
 import { diffLines } from "diff";
-import { KvRpcTest } from "./tests/kv_rpc";
-import { KvSubscribeErrorTest, KvSubscribeMultipleTest, KvSubscribeTest } from "./tests/kv_subscribe";
-import { ShortConnectionDisconnectTest, BuffersWhileDisconnectedTest, SubscriptionDisconnectTest, SubscriptionReconnectTest, TwoClientDisconnectTest, ProceduresGetDisconnectNotifs, SurvivesTransientNetworkBlips, SessionDisconnectTest } from "./tests/test_network";
 import { buildImage, cleanup, setupNetwork, applyAction, setupContainer, type ClientContainer } from "./src/docker";
-import { RepeatEchoTest } from "./tests/repeat_stream";
-import { UploadSendTest } from "./tests/send_upload";
+import KvRpcTests from "./tests/basic/kv";
+import EchoTests from "./tests/basic/echo";
+import UploadTests from "./tests/basic/upload";
+import NetworkTests from "./tests/network";
 
 const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
   .options({
@@ -22,7 +21,7 @@ const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
     server: {
       type: "string",
       demandOption: true,
-    },
+    }
   })
   .parseSync();
 
@@ -64,7 +63,7 @@ function constructDiffString(expected: string, actual: string): [string, boolean
   }, ""), hasDiff];
 }
 
-async function runSuite(tests: Record<string, Test>): Promise<boolean> {
+async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<boolean> {
   // setup
   await buildImage(clientImpl, "client");
   await buildImage(serverImpl, "server");
@@ -75,6 +74,11 @@ async function runSuite(tests: Record<string, Test>): Promise<boolean> {
   let testsFailed = [];
 
   for (const [name, test] of Object.entries(tests)) {
+    if (ignore.includes(test)) {
+      console.log(chalk.yellow(`[${name}] skipped`));
+      continue;
+    }
+
     console.log(chalk.yellow(`[${name}] setup`));
     const serverContainer = await setupContainer(clientImpl, serverImpl, "server");
 
@@ -147,25 +151,17 @@ async function runSuite(tests: Record<string, Test>): Promise<boolean> {
   return true;
 }
 
-// run the test suite
+// run the test suite with specific ignore lists
+const ignoreLists: Record<string, Test[]> = {
+  python: [EchoTests.RepeatEchoPrefixTest]
+}
+
 const pass = await runSuite({
-  'kv rpc': KvRpcTest,
-  'kv subscribe': KvSubscribeTest,
-  'kv subscribe error': KvSubscribeErrorTest,
-  'kv subscribe multiple clients': KvSubscribeMultipleTest,
-  'echo stream': RepeatEchoTest,
-  // TODO: python server not working with init now
-  // 'echo stream with prefix': RepeatEchoPrefixTest,
-  'upload': UploadSendTest,
-  'survives transient network blip': SurvivesTransientNetworkBlips,
-  'survives short connection disconnect': ShortConnectionDisconnectTest,
-  'survives session disconnect': SessionDisconnectTest,
-  'procedures get disconnect notifs': ProceduresGetDisconnectNotifs,
-  'network buffer requests': BuffersWhileDisconnectedTest,
-  'network subscription disconnect': SubscriptionDisconnectTest,
-  'network subscription reconnect': SubscriptionReconnectTest,
-  'network multi clients one disconnect': TwoClientDisconnectTest
-})
+  ...KvRpcTests,
+  ...EchoTests,
+  ...UploadTests,
+  ...NetworkTests,
+}, [...(ignoreLists[clientImpl] ?? []), ...(ignoreLists[serverImpl] ?? [])])
 
 await cleanup();
 

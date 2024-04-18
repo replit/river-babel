@@ -7,7 +7,7 @@ import DockerModem from "docker-modem";
 import logUpdate from "log-update";
 import { PassThrough } from "stream";
 import { serializeInvokeAction, type Action, type ExpectedOutputEntry } from "./actions";
-import { HEARTBEATS_TO_DEAD, HEARTBEAT_MS, SESSION_DISCONNECT_GRACE } from "../tests/test_network";
+import { HEARTBEATS_TO_DEAD, HEARTBEAT_MS, SESSION_DISCONNECT_GRACE } from "../tests/network";
 
 const docker = new Docker();
 const modem = new DockerModem();

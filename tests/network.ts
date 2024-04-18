@@ -11,8 +11,7 @@ const GRACE_MS = 250
 const DISCONNECT_PERIOD_MS = HEARTBEATS_TO_DEAD * HEARTBEAT_MS + GRACE_MS 
 const SESSION_DISCONNECT_MS = DISCONNECT_PERIOD_MS + SESSION_DISCONNECT_GRACE + GRACE_MS
 
-
-export const SurvivesTransientNetworkBlips: Test = {
+const SurvivesTransientNetworkBlips: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -27,7 +26,7 @@ export const SurvivesTransientNetworkBlips: Test = {
   }
 }
 
-export const ShortConnectionDisconnectTest: Test = {
+const ShortConnectionDisconnectTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -43,7 +42,7 @@ export const ShortConnectionDisconnectTest: Test = {
   }
 }
 
-export const SessionDisconnectTest: Test = {
+const SessionDisconnectTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -59,7 +58,7 @@ export const SessionDisconnectTest: Test = {
   }
 }
 
-export const ProceduresGetDisconnectNotifs: Test = {
+const ProceduresGetDisconnectNotifs: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -76,7 +75,7 @@ export const ProceduresGetDisconnectNotifs: Test = {
   }
 }
 
-export const BuffersWhileDisconnectedTest: Test = {
+const BuffersWhileDisconnectedTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -93,7 +92,7 @@ export const BuffersWhileDisconnectedTest: Test = {
   }
 }
 
-export const SubscriptionDisconnectTest: Test = {
+const SubscriptionDisconnectTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -110,7 +109,7 @@ export const SubscriptionDisconnectTest: Test = {
   },
 };
 
-export const SubscriptionReconnectTest: Test = {
+const SubscriptionReconnectTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -131,7 +130,7 @@ export const SubscriptionReconnectTest: Test = {
   },
 };
 
-export const TwoClientDisconnectTest: Test = {
+const TwoClientDisconnectTest: Test = {
   client1: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -163,4 +162,15 @@ export const TwoClientDisconnectTest: Test = {
       { id: "5", status: "ok", payload: 1 },
     ],
   },
+};
+
+export default {
+  SurvivesTransientNetworkBlips,
+  ShortConnectionDisconnectTest,
+  SessionDisconnectTest,
+  ProceduresGetDisconnectNotifs,
+  BuffersWhileDisconnectedTest,
+  SubscriptionDisconnectTest,
+  SubscriptionReconnectTest,
+  TwoClientDisconnectTest,
 };
