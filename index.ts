@@ -45,7 +45,7 @@ process.on('SIGINT', async () => {
 });
 
 function constructDiffString(expected: string, actual: string): [string, boolean] {
-  const diff = diffLines(expected.trim(), actual.trim(), { ignoreWhitespace: true });
+  const diff = diffLines(expected.trim(), actual.trim());
   let hasDiff = false;
   return [diff.reduce((acc, part) => {
     if (part.added || part.removed) {

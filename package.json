@@ -7,7 +7,7 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
-    "@replit/river": "^0.14.0",
+    "@replit/river": "^0.16.2",
     "@sinclair/typebox": "^0.32.20",
     "chalk": "^5.3.0",
     "diff": "^5.2.0",

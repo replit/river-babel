@@ -1,20 +1,13 @@
 
 
 import type { Test } from "../src/actions";
-
-export const HEARTBEAT_MS = 1000
-export const HEARTBEATS_TO_DEAD = 2
-export const SESSION_DISCONNECT_GRACE = 3000
-
-// wait durations
-const GRACE_MS = 250
-const DISCONNECT_PERIOD_MS = HEARTBEATS_TO_DEAD * HEARTBEAT_MS + GRACE_MS 
-const SESSION_DISCONNECT_MS = DISCONNECT_PERIOD_MS + SESSION_DISCONNECT_GRACE + GRACE_MS
+import { DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS } from "./constants";
 
 const SurvivesTransientNetworkBlips: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 500 },
       { type: "disconnect_network" },
       { type: "connect_network" },
       { type: "invoke", id: "2", proc: "kv.set", payload: { k: "abc", v: 43 } },
@@ -30,6 +23,7 @@ const ShortConnectionDisconnectTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 500 },
       { type: "disconnect_network" },
       { type: "wait", ms: DISCONNECT_PERIOD_MS }, 
       { type: "connect_network" },
@@ -46,6 +40,7 @@ const SessionDisconnectTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 500 },
       { type: "disconnect_network" },
       { type: "wait", ms: SESSION_DISCONNECT_MS }, 
       { type: "connect_network" },
