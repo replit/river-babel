@@ -53,23 +53,6 @@ const SessionDisconnectTest: Test = {
   }
 }
 
-const ProceduresGetDisconnectNotifs: Test = {
-  client: {
-    actions: [
-      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
-      { type: "wait", ms: 500 },
-      { type: "disconnect_network" },
-      // invoking after disconnected should eventually tell us unexpected disconnect
-      { type: "invoke", id: "2", proc: "kv.set", payload: { k: "foo", v: 43 } },
-      { type: "wait", ms: SESSION_DISCONNECT_MS },
-    ],
-    expectedOutput: [
-      { id: "1", status: "ok", payload: 42 },
-      { id: "2", status: "err", payload: "UNEXPECTED_DISCONNECT" },
-    ],
-  }
-}
-
 const BuffersWhileDisconnectedTest: Test = {
   client: {
     actions: [
@@ -112,8 +95,8 @@ const SubscriptionReconnectTest: Test = {
       { type: "disconnect_network" },
       { type: "wait", ms: 800 },
       { type: "invoke", id: "3", proc: "kv.set", payload: { k: "abc", v: 1 } },
-      { type: "invoke", id: "4", proc: "kv.set", payload: { k: "foo", v: 43 } },
       { type: "connect_network" },
+      { type: "invoke", id: "4", proc: "kv.set", payload: { k: "foo", v: 43 } },
     ],
     expectedOutput: [
       { id: "1", status: "ok", payload: 42 },
@@ -163,7 +146,6 @@ export default {
   SurvivesTransientNetworkBlips,
   ShortConnectionDisconnectTest,
   SessionDisconnectTest,
-  ProceduresGetDisconnectNotifs,
   BuffersWhileDisconnectedTest,
   SubscriptionDisconnectTest,
   SubscriptionReconnectTest,

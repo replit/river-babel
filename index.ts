@@ -11,6 +11,7 @@ import KvRpcTests from "./tests/basic/kv";
 import EchoTests from "./tests/basic/echo";
 import UploadTests from "./tests/basic/upload";
 import NetworkTests from "./tests/network";
+import DisconnectNotifsTests from "./tests/disconnect_notifs";
 
 const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
   .options({
@@ -161,6 +162,7 @@ const pass = await runSuite({
   ...EchoTests,
   ...UploadTests,
   ...NetworkTests,
+  ...DisconnectNotifsTests,
 }, [...(ignoreLists[clientImpl] ?? []), ...(ignoreLists[serverImpl] ?? [])])
 
 await cleanup();
