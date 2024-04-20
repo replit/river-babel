@@ -111,13 +111,11 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
     await Promise.all([
       (async () => {
         for (const action of serverActions ?? []) {
-          console.log(`server action`, action.type);
           await applyAction(network, serverContainer, action);
         }
       })(),
-      ...Object.entries(containers).map(async ([clientName, client]) => {
+      ...Object.entries(containers).map(async ([_clientName, client]) => {
         for (const action of client.actions) {
-          console.log(`${clientName} action`, action.type);
           await applyAction(network, client, action);
         }
       }),
