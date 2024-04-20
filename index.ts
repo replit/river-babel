@@ -4,6 +4,8 @@ import { hideBin } from "yargs/helpers";
 import {
   type Test,
   serializeExpectedOutputEntry,
+  type Action,
+  type InvokeActions,
 } from "./src/actions";
 import { diffLines } from "diff";
 import { buildImage, cleanup, setupNetwork, applyAction, setupContainer, type ClientContainer } from "./src/docker";
@@ -12,6 +14,9 @@ import EchoTests from "./tests/basic/echo";
 import UploadTests from "./tests/basic/upload";
 import NetworkTests from "./tests/network";
 import DisconnectNotifsTests from "./tests/disconnect_notifs";
+import VolumeTests from "./tests/volume";
+import InterleavingTests from "./tests/interleaving";
+import InstanceMismatchTests from "./tests/instance_mismatch";
 
 const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
   .options({
@@ -82,25 +87,41 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<bo
 
     console.log(chalk.yellow(`[${name}] setup`));
     const serverContainer = await setupContainer(clientImpl, serverImpl, "server");
+    let serverActions: Exclude<Action, InvokeActions>[] = [];
 
     const containers: Record<string, ClientContainer> = {};
-    for (const [clientName, { actions, expectedOutput }] of Object.entries(
+    for (const [clientName, testEntry] of Object.entries(
       test
     )) {
-      const container = await setupContainer(clientImpl, serverImpl, "client", clientName);
-      containers[clientName] = {
-        ...container,
-        actions,
-        expectedOutput,
-      };
+      if ('serverActions' in testEntry) {
+        serverActions = testEntry.serverActions;
+      } else {
+        // client case
+        const { actions, expectedOutput } = testEntry;
+        const container = await setupContainer(clientImpl, serverImpl, "client", clientName);
+        containers[clientName] = {
+          ...container,
+          actions,
+          expectedOutput,
+        };
+      }
     }
 
     console.log(chalk.yellow(`[${name}] run`));
-    await Promise.all(Object.values(containers).map(async (client) => {
-      for (const action of client.actions) {
-        await applyAction(network, client, action);
-      }
-    }));
+    await Promise.all([
+      (async () => {
+        for (const action of serverActions ?? []) {
+          console.log(`server action`, action.type);
+          await applyAction(network, serverContainer, action);
+        }
+      })(),
+      ...Object.entries(containers).map(async ([clientName, client]) => {
+        for (const action of client.actions) {
+          console.log(`${clientName} action`, action.type);
+          await applyAction(network, client, action);
+        }
+      }),
+    ]);
 
     // wait a little bit to finish processing
     console.log(chalk.yellow(`[${name}] cleanup`));
@@ -161,8 +182,11 @@ const pass = await runSuite({
   ...KvRpcTests,
   ...EchoTests,
   ...UploadTests,
+  ...InterleavingTests,
   ...NetworkTests,
   ...DisconnectNotifsTests,
+  ...VolumeTests,
+  ...InstanceMismatchTests,
 }, [...(ignoreLists[clientImpl] ?? []), ...(ignoreLists[serverImpl] ?? [])])
 
 await cleanup();

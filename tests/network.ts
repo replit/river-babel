@@ -1,6 +1,4 @@
-
-
-import type { Test } from "../src/actions";
+import type { Action, ExpectedOutputEntry, Test } from "../src/actions";
 import { DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS } from "./constants";
 
 const SurvivesTransientNetworkBlips: Test = {
@@ -49,6 +47,45 @@ const SessionDisconnectTest: Test = {
     expectedOutput: [
       { id: "1", status: "ok", payload: 42 },
       { id: "2", status: "ok", payload: 43 },
+    ],
+  }
+}
+
+const ShouldNotSendBufferAfterSessionDisconnect: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" }},
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "invoke", id: "3", proc: "kv.set", payload: { k: "foo", v: 43 } },
+      { type: "wait", ms: SESSION_DISCONNECT_MS }, 
+      { type: "connect_network" },
+      { type: "invoke", id: "4", proc: "kv.set", payload: { k: "foo", v: 44 } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 42 },
+      { id: "2", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "3", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "4", status: "ok", payload: 44 },
+    ],
+  }
+}
+
+const MessageOrderingPreservedDuringDisconnect: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      ...Array.from({ length: 10 }, (_, i): Action => ({ type: "invoke", id: (i + 2).toString(), proc: "kv.set", payload: { k: "foo", v: i } })),
+      { type: "wait", ms: DISCONNECT_PERIOD_MS }, 
+      { type: "connect_network" },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      ...Array.from({ length: 10 }, (_, i): ExpectedOutputEntry => ({ id: (i + 2).toString(), status: "ok", payload: i })),
     ],
   }
 }
@@ -146,6 +183,8 @@ export default {
   SurvivesTransientNetworkBlips,
   ShortConnectionDisconnectTest,
   SessionDisconnectTest,
+  ShouldNotSendBufferAfterSessionDisconnect,
+  MessageOrderingPreservedDuringDisconnect,
   BuffersWhileDisconnectedTest,
   SubscriptionDisconnectTest,
   SubscriptionReconnectTest,
