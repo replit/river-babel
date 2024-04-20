@@ -1,0 +1,3 @@
+[submodule "impls/python/river-python"]
+	path = impls/python/river-python
+	url = git@github.com:replit/river-python.git

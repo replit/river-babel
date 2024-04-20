@@ -108,3 +108,17 @@ export const OneClientDisconnectTest: Test = {
     ],
   },
 };
+
+
+export const HeartBeatTest: Test = {
+  client: {
+    actions: [
+      // wait 40s before sending the first request
+      { type: "wait", ms: 30000 },
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 1 } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 1 },
+    ],
+  },
+};

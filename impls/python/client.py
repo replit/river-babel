@@ -20,14 +20,15 @@ from protos.client_schema import (
     UploadSendInput,
     UploadSendOutput,
 )
+from replit_river.transport_options import TransportOptions
 
 # Load environment variables
 PORT = os.getenv("PORT")
 CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
 SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
-HEARTBEAT_MS = int(os.getenv("HEARTBEAT_MS", "0"))
-HEARTBEATS_TO_DEAD = int(os.getenv("HEARTBEATS_TO_DEAD", "0"))
-SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "0"))
+HEARTBEAT_MS = int(os.getenv("HEARTBEAT_MS", "1000"))
+HEARTBEATS_TO_DEAD = int(os.getenv("HEARTBEATS_TO_DEAD", "2"))
+SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "5000"))
 
 input_streams: Dict[str, asyncio.Queue] = {}
 tasks: Dict[str, asyncio.Task] = {}
@@ -39,9 +40,13 @@ async def process_commands():
     async with connect(uri) as websocket:
         client = Client(
             websocket,
-            use_prefix_bytes=False,
             client_id=CLIENT_TRANSPORT_ID,
             server_id=SERVER_TRANSPORT_ID,
+            transport_options=TransportOptions(
+                heartbeat_ms=HEARTBEAT_MS,
+                heartbeats_until_dead=HEARTBEATS_TO_DEAD,
+                session_disconnect_grace_ms=SESSION_DISCONNECT_GRACE_MS,
+            ),
         )
         test_client = TestCient(client)
         try:

@@ -4,13 +4,19 @@ import os
 from typing import Any, AsyncIterator, Callable, Dict, Generic, TypeVar
 
 import replit_river as river
-from replit_river.error_schema import RiverError
-from websockets.server import serve
 
+from replit_river.error_schema import RiverError
+from replit_river.transport_options import TransportOptions
+from websockets.server import serve
 from protos import service_pb2, service_pb2_grpc, service_river
 
 SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 T = TypeVar("T")
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="Python Server %(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 class Observable(Generic[T]):
@@ -97,9 +103,12 @@ class RepeatServicer(service_pb2_grpc.repeatServicer):
 
 
 async def start_server() -> None:
-    logging.error("started server")
+    logging.info("started server")
 
-    server = river.Server(server_id=SERVER_TRANSPORT_ID)
+    server = river.Server(
+        server_id=SERVER_TRANSPORT_ID,
+        transport_options=TransportOptions(),
+    )
     kv_servicer = KvServicer()
     service_river.add_kvServicer_to_server(kv_servicer, server)  # type: ignore
     upload_servicer = UploadServicer()
@@ -112,7 +121,7 @@ async def start_server() -> None:
     async def _serve() -> None:
         async with serve(server.serve, "0.0.0.0", 8080):
             started.set_result(None)
-            logging.error("started test")
+            logging.info("started test")
             await done
 
     async with asyncio.TaskGroup() as tg:
