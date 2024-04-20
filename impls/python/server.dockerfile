@@ -14,4 +14,4 @@ RUN poetry install
 
 COPY . .
 
-CMD ["poetry", "run", "python", "server.py"]
+CMD ["poetry", "run", "python", "server.py", "--log-cli-level=debug"]

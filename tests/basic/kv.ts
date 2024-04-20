@@ -1,6 +1,21 @@
-import type { Test } from "../src/actions";
+import type { Test } from "../../src/actions";
 
-export const KvSubscribeTest: Test = {
+const KvRpcTest: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "invoke", id: "2", proc: "kv.set", payload: { k: "foo", v: 43 } },
+      { type: "invoke", id: "3", proc: "kv.set", payload: { k: "abc", v: 1 } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 43 },
+      { id: "3", status: "ok", payload: 1 },
+    ],
+  }
+}
+
+const KvSubscribeTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -18,7 +33,7 @@ export const KvSubscribeTest: Test = {
   },
 };
 
-export const KvSubscribeErrorTest: Test = {
+const KvSubscribeErrorTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.watch", payload: { k: "foo" } },
@@ -29,7 +44,7 @@ export const KvSubscribeErrorTest: Test = {
   },
 };
 
-export const KvSubscribeMultipleTest: Test = {
+const KvSubscribeMultipleTest: Test = {
   client1: {
     actions: [
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
@@ -66,3 +81,10 @@ export const KvSubscribeMultipleTest: Test = {
     ],
   },
 };
+
+export default {
+  KvRpcTest,
+  KvSubscribeTest,
+  KvSubscribeErrorTest,
+  KvSubscribeMultipleTest,
+}

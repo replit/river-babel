@@ -6,10 +6,7 @@ export type Action =
       ms: number;
     }
   | {
-      type: "kill_container";
-    }
-  | {
-      type: "start_container";
+      type: "restart_container";
     }
   | {
       type: "connect_network";
@@ -109,7 +106,6 @@ export function serializeInvokeAction(action: InvokeActions) {
   }
 
   const serialized = `${action.id} -- ${action.proc} -> ${payload}`;
-  console.log(serialized);
   return serialized;
 }
 
@@ -126,4 +122,6 @@ export function serializeExpectedOutputEntry(entry: ExpectedOutputEntry) {
 export type Test = Record<string, {
   actions: Action[],
   expectedOutput: ExpectedOutputEntry[],
+} | {
+  serverActions: Exclude<Action, InvokeActions>[],
 }>;

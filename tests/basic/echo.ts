@@ -1,6 +1,6 @@
-import type { Test } from "../src/actions";
+import type { Test } from "../../src/actions";
 
-export const RepeatEchoTest: Test = {
+const RepeatEchoTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "repeat.echo", init: {} },
@@ -14,7 +14,7 @@ export const RepeatEchoTest: Test = {
   },
 };
 
-export const RepeatEchoPrefixTest: Test = {
+const RepeatEchoPrefixTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "repeat.echo_prefix", init: { prefix: "prefix: " } },
@@ -27,3 +27,5 @@ export const RepeatEchoPrefixTest: Test = {
     ],
   },
 };
+
+export default { RepeatEchoTest, RepeatEchoPrefixTest };
