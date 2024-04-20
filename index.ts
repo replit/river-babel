@@ -69,7 +69,7 @@ function constructDiffString(expected: string, actual: string): [string, boolean
   }, ""), hasDiff];
 }
 
-async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<boolean> {
+async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<number> {
   // setup
   await buildImage(clientImpl, "client");
   await buildImage(serverImpl, "server");
@@ -167,10 +167,9 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<bo
   if (testsFailed.length) {
     console.log(chalk.red(`failed:`));
     testsFailed.forEach((name) => console.log(chalk.red(`- ${name}`)));
-    return false;
   }
 
-  return true;
+  return testsFailed.length;
 }
 
 // run the test suite with specific ignore lists
@@ -178,7 +177,7 @@ const ignoreLists: Record<string, Test[]> = {
   python: [EchoTests.RepeatEchoPrefixTest]
 }
 
-const pass = await runSuite({
+const numFailed = await runSuite({
   ...KvRpcTests,
   ...EchoTests,
   ...UploadTests,
@@ -191,6 +190,4 @@ const pass = await runSuite({
 
 await cleanup();
 
-if (!pass) {
-  process.exit(1)
-}
+process.exit(numFailed)
