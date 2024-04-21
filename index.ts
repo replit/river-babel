@@ -147,6 +147,10 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
         console.log(await client.stderr);
       } else {
         console.log(chalk.green(`[${name}] ${clientName} `) + chalk.black.bgGreen(` PASS `));
+        // console.log(diff + "\n");
+
+        // console.log(chalk.yellow(`[${name}] ${clientName} logs`));
+        // console.log(await client.stderr);
       }
     }
 
@@ -154,6 +158,9 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
       console.log(chalk.yellow(`[${name}] server logs`));
       console.log(await serverContainer.stderr);
       testsFailed.push(name);
+    } else {
+      // console.log(chalk.yellow(`[${name}] server logs`));
+      // console.log(await serverContainer.stderr);
     }
 
     numTests++;
@@ -176,14 +183,14 @@ const ignoreLists: Record<string, Test[]> = {
 }
 
 const numFailed = await runSuite({
-  // ...KvRpcTests,
-  // ...EchoTests,
-  // ...UploadTests,
-  // ...InterleavingTests,
+  ...KvRpcTests,
+  ...EchoTests,
+  ...UploadTests,
+  ...InterleavingTests,
   ...NetworkTests,
-  // ...DisconnectNotifsTests,
-  // ...VolumeTests,
-  // ...InstanceMismatchTests,
+  ...DisconnectNotifsTests,
+  ...VolumeTests,
+  ...InstanceMismatchTests,
 }, [...(ignoreLists[clientImpl] ?? []), ...(ignoreLists[serverImpl] ?? [])])
 
 await cleanup();

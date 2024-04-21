@@ -195,13 +195,13 @@ const TwoClientDisconnectTest: Test = {
 };
 
 export default {
-  // SurvivesTransientNetworkBlips,
-  // ShortConnectionDisconnectTest,
+  SurvivesTransientNetworkBlips,
+  ShortConnectionDisconnectTest,
   SessionDisconnectTest,
-  // ShouldNotSendBufferAfterSessionDisconnect,
-  // MessageOrderingPreservedDuringDisconnect,
-  // BuffersWhileDisconnectedTest,
-  // SubscriptionDisconnectTest,
-  // SubscriptionReconnectTest,
-  // TwoClientDisconnectTest,
+  ShouldNotSendBufferAfterSessionDisconnect,
+  MessageOrderingPreservedDuringDisconnect,
+  BuffersWhileDisconnectedTest,
+  SubscriptionDisconnectTest,
+  SubscriptionReconnectTest,
+  TwoClientDisconnectTest,
 };

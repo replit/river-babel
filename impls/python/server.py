@@ -60,7 +60,7 @@ class KvServicer(service_pb2_grpc.kvServicer):
             await self.kv[key].set(value)
         # This is a hack to let `watch` return faster than `set`
         # to match the order in test
-        await asyncio.sleep(1 / 100_000)
+        await asyncio.sleep(1 / 100_000_000)
         return service_pb2.KVResponse(v=self.kv[key].get())
 
     async def watch(
