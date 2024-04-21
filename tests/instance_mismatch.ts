@@ -39,5 +39,6 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
 
 export default {
   MismatchedClientInstanceDoesntGetResentStaleMessagesFromServer,
+  // when server restart, how to let client reset their seq?
   MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient
 }

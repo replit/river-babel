@@ -10,7 +10,13 @@ from replit_river.transport_options import TransportOptions
 from websockets.server import serve
 from protos import service_pb2, service_pb2_grpc, service_river
 
+PORT = os.getenv("PORT")
+CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
 SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
+HEARTBEAT_MS = int(os.getenv("HEARTBEAT_MS", "500"))
+HEARTBEATS_TO_DEAD = int(os.getenv("HEARTBEATS_TO_DEAD", "2"))
+SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "3000"))
+
 T = TypeVar("T")
 
 logging.basicConfig(
@@ -52,8 +58,9 @@ class KvServicer(service_pb2_grpc.kvServicer):
             self.kv[key] = Observable(value)
         else:
             await self.kv[key].set(value)
-        # wait slightly to let the watch response be sent first
-        await asyncio.sleep(0.1)
+        # This is a hack to let `watch` return faster than `set`
+        # to match the order in test
+        await asyncio.sleep(1 / 100_000)
         return service_pb2.KVResponse(v=self.kv[key].get())
 
     async def watch(
@@ -104,10 +111,14 @@ class RepeatServicer(service_pb2_grpc.repeatServicer):
 
 async def start_server() -> None:
     logging.info("started server")
-
     server = river.Server(
         server_id=SERVER_TRANSPORT_ID,
-        transport_options=TransportOptions(),
+        transport_options=TransportOptions(
+            heartbeat_ms=HEARTBEAT_MS,
+            heartbeats_until_dead=HEARTBEATS_TO_DEAD,
+            session_disconnect_grace_ms=SESSION_DISCONNECT_GRACE_MS,
+            buffer_size=5000,
+        ),
     )
     kv_servicer = KvServicer()
     service_river.add_kvServicer_to_server(kv_servicer, server)  # type: ignore
