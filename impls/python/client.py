@@ -8,8 +8,8 @@ from typing import AsyncIterator, Dict
 from replit_river import (
     Client,
 )
+from replit_river.task_manager import BackgroundTaskManager
 from websockets import connect
-
 from protos.client_schema import (
     KvSetInput,
     KvWatchInput,
@@ -29,6 +29,13 @@ SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 HEARTBEAT_MS = int(os.getenv("HEARTBEAT_MS", "500"))
 HEARTBEATS_TO_DEAD = int(os.getenv("HEARTBEATS_TO_DEAD", "2"))
 SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "3000"))
+
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="Python Server %(asctime)s - %(levelname)s - %(message)s",
+)
+
 
 input_streams: Dict[str, asyncio.Queue] = {}
 tasks: Dict[str, asyncio.Task] = {}
@@ -67,7 +74,6 @@ async def process_commands():
                 line = line[line.index("}") + 1 :]
 
             pattern = r"(?P<id>\w+) -- (?P<svc>\w+)\.(?P<proc>\w+) -> ?(?P<payload>.*)"
-
             # Perform the match
             match = re.match(pattern, line)
 
@@ -75,7 +81,6 @@ async def process_commands():
             if not match:
                 print("FATAL: invalid command", line)
                 sys.exit(1)
-
             # Extract the named groups
             id_ = match.group("id")
             svc = match.group("svc")
@@ -89,8 +94,8 @@ async def process_commands():
                     try:
                         res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
                         print(f"{id_} -- ok:{res.v}")
-                    except Exception as e:
-                        print(f"{id_} -- err:{e}")
+                    except Exception:
+                        print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
                 elif proc == "watch":
                     k = payload
                     tasks[id_] = asyncio.create_task(handle_watch(id_, k, test_client))
@@ -120,6 +125,9 @@ async def process_commands():
         await client.close()
         for task in tasks.values():
             task.cancel()
+            exception = task.exception()
+            if exception is not None:
+                logging.error("Task raised an exception: {}", exception)
         tasks.clear()
 
 
@@ -135,7 +143,7 @@ async def handle_watch(
             else:
                 print(f"{id_} -- err:{v.code}")
     except Exception as e:
-        print(f"{id_} -- err:{e}")
+        print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
 async def handle_upload(id_: str, test_client: TestCient):
@@ -151,13 +159,13 @@ async def handle_upload(id_: str, test_client: TestCient):
         if isinstance(result, UploadSendOutput):
             print(f"{id_} -- ok:{result.doc}")
         else:  # Assuming this handles both RiverError and exceptions
-            print(f"{id_} -- err:{result.message}")
+            print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
     try:
         result = await test_client.upload.send(upload_iterator())
         await print_result(result)
     except Exception as e:
-        print(f"{id_} -- err:{e}")
+        print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
 async def handle_echo(id_: str, test_client: TestCient):
@@ -179,7 +187,7 @@ async def handle_echo(id_: str, test_client: TestCient):
         async for v in await test_client.repeat.echo(upload_iterator()):
             print_result(v)
     except Exception as e:
-        print(f"{id_} -- err:{e}")
+        print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
 async def main():

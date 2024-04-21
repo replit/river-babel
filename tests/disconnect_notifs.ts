@@ -65,4 +65,7 @@ const UploadDisconnectNotifs: Test = {
   },
 };
 
-export default { RpcDisconnectNotifs, SubscribeDisconnectNotifs, StreamDisconnectNotifs, UploadDisconnectNotifs };
+export default {
+  RpcDisconnectNotifs, SubscribeDisconnectNotifs, StreamDisconnectNotifs, UploadDisconnectNotifs
+
+};
