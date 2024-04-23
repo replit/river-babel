@@ -59,13 +59,15 @@ const UploadDisconnectNotifs: Test = {
       { type: "invoke", id: "1", proc: "upload.send", payload: { part: "def" } },
       { type: "wait", ms: 500 },
       { type: "disconnect_network" },
-      { type: "wait", ms: SESSION_DISCONNECT_MS },
+      { type: "wait", ms: SESSION_DISCONNECT_MS + 500 },
     ],
     expectedOutput: [{ id: "1", status: "err", payload: "UNEXPECTED_DISCONNECT" }],
   },
 };
 
 export default {
-  RpcDisconnectNotifs, SubscribeDisconnectNotifs, StreamDisconnectNotifs, UploadDisconnectNotifs
-
+  RpcDisconnectNotifs,
+  SubscribeDisconnectNotifs,
+  StreamDisconnectNotifs,
+  UploadDisconnectNotifs
 };

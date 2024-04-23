@@ -136,8 +136,6 @@ const SubscriptionReconnectTest: Test = {
       { type: "invoke", id: "3", proc: "kv.set", payload: { k: "abc", v: 1 } },
       { type: "connect_network" },
       { type: "invoke", id: "4", proc: "kv.set", payload: { k: "foo", v: 43 } },
-      // TODO: how long does this need?
-      { type: "wait", ms: 500 },
     ],
     expectedOutput: [
       { id: "1", status: "ok", payload: 42 },
