@@ -175,6 +175,9 @@ export async function setupContainer(
       HostConfig: {
         NetworkMode: NETWORK_NAME,
       },
+      AttachStdin: true,
+      AttachStderr: true,
+      AttachStdout: true,
       OpenStdin: true,
       Env: [
         "PORT=8080",
