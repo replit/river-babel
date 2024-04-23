@@ -7,6 +7,7 @@ import DockerModem from "docker-modem";
 import logUpdate from "log-update";
 import { PassThrough } from "stream";
 import { serializeInvokeAction, type Action, type ExpectedOutputEntry } from "./actions";
+import { HEARTBEATS_TO_DEAD, HEARTBEAT_MS, SESSION_DISCONNECT_GRACE } from "../tests/constants";
 
 const docker = new Docker();
 const modem = new DockerModem();
@@ -173,16 +174,18 @@ export async function setupContainer(
       },
       HostConfig: {
         NetworkMode: NETWORK_NAME,
-        AutoRemove: true,
       },
+      AttachStdin: true,
+      AttachStderr: true,
+      AttachStdout: true,
       OpenStdin: true,
       Env: [
         "PORT=8080",
         nameOverride ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}` : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
         `SERVER_TRANSPORT_ID=${serverImpl}-server`,
-        "HEARTBEAT_MS=1000",
-        "HEARTBEATS_TO_DEAD=2",
-        "SESSION_DISCONNECT_GRACE_MS=5000",
+        `HEARTBEAT_MS=${HEARTBEAT_MS}`,
+        `HEARTBEATS_TO_DEAD=${HEARTBEATS_TO_DEAD}`,
+        `SESSION_DISCONNECT_GRACE_MS=${SESSION_DISCONNECT_GRACE}`,
       ],
     });
     containerId = container.id;
@@ -218,17 +221,30 @@ export async function setupContainer(
 
 export async function applyAction(
   network: Docker.Network,
-  containerHandle: ClientContainer,
+  containerHandle: ContainerHandle,
   action: Action
 ) {
   if (action.type === "invoke") {
     containerHandle.stdin.write(serializeInvokeAction(action) + "\n");
   } else if (action.type === "wait") {
     await new Promise((resolve) => setTimeout(resolve, action.ms));
-  } else if (action.type === "kill_container") {
-    await containerHandle.container.stop();
-  } else if (action.type === "start_container") {
+  } else if (action.type === "restart_container") {
+    await containerHandle.container.stop({ t: 0 });
     await containerHandle.container.start();
+
+    const [stdin, stdout, stderr] = await containerStreams(containerHandle.container);
+    containerHandle.stdin = stdin;
+    containerHandle.stdout = Promise.all([containerHandle.stdout, streamToString(stdout)]).then(outs => outs.join(""));
+    containerHandle.stderr = Promise.all([containerHandle.stderr, Promise.resolve("=== container restart ===\n"), streamToString(stderr)]).then(outs => outs.join(""));
+
+    const oldCleanup = containerHandle.cleanup;
+    const newCleanup = async () => {
+      stdout.end();
+      stderr.end();
+      await oldCleanup();
+    }
+
+    containerHandle.cleanup = newCleanup;
   } else if (action.type === "connect_network") {
     await network.connect({ Container: containerHandle.container.id });
   } else if (action.type === "disconnect_network") {

@@ -4,7 +4,7 @@ import readline from 'node:readline';
 import { createClient, type Server } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
-import { bindLogger, log, setLevel } from "@replit/river/logging";
+import { bindLogger, setLevel } from "@replit/river/logging";
 import type { serviceDefs } from "./serviceDefs";
 import type { Pushable } from "it-pushable";
 
@@ -32,7 +32,10 @@ const clientTransport = new WebSocketClientTransport(
   transportOptions,
 );
 
-const client = createClient<Server<typeof serviceDefs>>(clientTransport, SERVER_TRANSPORT_ID, true);
+const client = createClient<Server<typeof serviceDefs>>(clientTransport, SERVER_TRANSPORT_ID, {
+  connectOnInvoke: true,
+  eagerlyConnect: true
+});
 
 // listen for jepsen driver commands
 const rl = readline.createInterface({
@@ -53,14 +56,14 @@ for await (const line of rl) {
   if (svc === 'kv') {
     if (proc === 'set') {
       const [k, v] = payload.split(' ');
-      const res = await client.kv.set.rpc({k, v: parseInt(v)});
+      const res = await client.kv.set.rpc({ k, v: parseInt(v) });
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
       } else {
         console.log(`${id} -- err:${res.payload.code}`);
       }
     } else if (proc === "watch") {
-      const [res] = await client.kv.watch.subscribe({k: payload});
+      const [res] = await client.kv.watch.subscribe({ k: payload });
       (async () => {
         for await (const v of res) {
           if (v.ok) {
@@ -87,11 +90,11 @@ for await (const line of rl) {
 
         handles.set(id, input);
       } else {
-        handles.get(id)!.push({str: payload});
+        handles.get(id)!.push({ str: payload });
       }
     } else if (proc === 'echo_prefix') {
       if (!handles.has(id)) {
-        const [input, output] = await client.repeat.echo_prefix.stream({prefix: payload});
+        const [input, output] = await client.repeat.echo_prefix.stream({ prefix: payload });
         (async () => {
           for await (const v of output) {
             if (v.ok) {
@@ -104,7 +107,7 @@ for await (const line of rl) {
 
         handles.set(id, input);
       } else {
-        handles.get(id)!.push({str: payload});
+        handles.get(id)!.push({ str: payload });
       }
     }
   } else if (svc === 'upload') {
@@ -122,7 +125,7 @@ for await (const line of rl) {
           }
         })();
       } else {
-        handles.get(id)!.push({part: payload});
+        handles.get(id)!.push({ part: payload });
       }
     }
   }

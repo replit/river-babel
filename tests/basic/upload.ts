@@ -1,6 +1,6 @@
-import type { Test } from "../src/actions";
+import type { Test } from "../../src/actions";
 
-export const UploadSendTest: Test = {
+const UploadSendTest: Test = {
   client: {
     actions: [
       { type: "invoke", id: "1", proc: "upload.send", init: {} },
@@ -12,3 +12,4 @@ export const UploadSendTest: Test = {
   },
 };
 
+export default { UploadSendTest };

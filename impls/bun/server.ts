@@ -4,7 +4,6 @@ import { WebSocketServerTransport } from "@replit/river/transport/ws/server";
 import { createServer } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
-import fs from "fs";
 import { bindLogger, setLevel } from "@replit/river/logging";
 import { serviceDefs } from "./serviceDefs";
 
