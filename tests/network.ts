@@ -73,8 +73,6 @@ const ShouldNotSendBufferAfterSessionDisconnect: Test = {
   }
 }
 
-// TODO: What if client started new session while server is still using old session?
-// the timer is different
 const MessageOrderingPreservedDuringDisconnect: Test = {
   client: {
     actions: [
