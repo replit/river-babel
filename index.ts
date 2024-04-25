@@ -123,7 +123,7 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
 
     // wait a little bit to finish processing
     console.log(chalk.yellow(`[${name}] cleanup`));
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     await Promise.all(Object.values(containers).map(async (client) => await client.cleanup()));
     await serverContainer.cleanup();
 
