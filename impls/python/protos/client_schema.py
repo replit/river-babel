@@ -53,7 +53,7 @@ class KvService:
         self,
         input: KvWatchInput,
     ) -> AsyncIterator[Union[KvWatchOutput, KvWatchErrors]]:
-        return self.client.send_subscription(
+        return await self.client.send_subscription(
             "kv",
             "watch",
             input,
@@ -91,7 +91,7 @@ class RepeatService:
         self,
         inputStream: AsyncIterable[RepeatEchoInput],
     ) -> AsyncIterator[Union[RepeatEchoOutput, RiverError]]:
-        return self.client.send_stream(
+        return await self.client.send_stream(
             "repeat",
             "echo",
             None,
@@ -107,7 +107,7 @@ class RepeatService:
         init: RepeatEcho_PrefixInit,
         inputStream: AsyncIterable[RepeatEcho_PrefixInput],
     ) -> AsyncIterator[Union[RepeatEcho_PrefixOutput, RiverError]]:
-        return self.client.send_stream(
+        return await self.client.send_stream(
             "repeat",
             "echo_prefix",
             init,

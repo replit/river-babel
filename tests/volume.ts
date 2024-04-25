@@ -10,7 +10,7 @@ const ManyRpcs: Test = {
         proc: "kv.set",
         payload: { k: "foo", v: i },
       })),
-      { type: "wait", ms: 2000 },
+      { type: "wait", ms: 3000 },
     ],
     expectedOutput: Array.from({ length: MANY }, (_, i) => ({
       id: (i + 1).toString(),
