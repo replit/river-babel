@@ -51,6 +51,20 @@ const SessionDisconnectTest: Test = {
   }
 }
 
+const SurvivesLongSessionIdle: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 10000 },
+      { type: "invoke", id: "2", proc: "kv.set", payload: { k: "abc", v: 43 } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 43 },
+    ],
+  }
+}
+
 const ShouldNotSendBufferAfterSessionDisconnect: Test = {
   client: {
     actions: [
@@ -215,6 +229,7 @@ const RepeatedConnectReconnectTest: Test = {
 export default {
   SurvivesTransientNetworkBlips,
   ShortConnectionDisconnectTest,
+  SurvivesLongSessionIdle,
   SessionDisconnectTest,
   ShouldNotSendBufferAfterSessionDisconnect,
   MessageOrderingPreservedDuringDisconnect,
