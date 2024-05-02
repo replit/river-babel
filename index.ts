@@ -7,7 +7,6 @@ import {
   type Action,
   type InvokeActions,
 } from "./src/actions";
-import { diffLines } from "diff";
 import { buildImage, cleanup, setupNetwork, applyAction, setupContainer, type ClientContainer } from "./src/docker";
 import KvRpcTests from "./tests/basic/kv";
 import EchoTests from "./tests/basic/echo";
@@ -51,22 +50,34 @@ process.on('SIGINT', async () => {
 });
 
 function constructDiffString(expected: string, actual: string): [string, boolean] {
-  const diff = diffLines(expected.trim(), actual.trim());
-  let hasDiff = false;
-  return [diff.reduce((acc, part) => {
-    if (part.added || part.removed) {
-      hasDiff = true;
-    }
+  const expectedLines = expected.split('\n');
+  const actualLines = actual.split('\n');
+  const maxLength = Math.max(expectedLines.length, actualLines.length);
 
-    return (
-      acc +
-      (part.added
-        ? chalk.green(part.value)
-        : part.removed
-          ? chalk.red(part.value)
-          : part.value)
-    );
-  }, ""), hasDiff];
+  const maxLineLength = Math.max(
+    ...expectedLines.map(line => line.length),
+    ...actualLines.map(line => line.length)
+  );
+
+  const tabCount = maxLineLength + 4;
+
+  let hasDiff = false;
+  const diff: string[] = [`expected${' '.repeat(tabCount - 8)}actual`];
+
+  for (let i = 0; i < maxLength; i++) {
+    const expectedLine = expectedLines[i] || '';
+    const actualLine = actualLines[i] || '';
+
+    const padding = ' '.repeat(tabCount - expectedLine.length);
+    if (expectedLine === actualLine) {
+      diff.push(`${expectedLine}${padding}${actualLine}`);
+    } else {
+      hasDiff = true;
+      diff.push(`${chalk.red(expectedLine)}${padding}${chalk.green(actualLine)}`);
+    }
+  }
+
+  return [diff.join('\n'), hasDiff];
 }
 
 async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<number> {

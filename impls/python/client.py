@@ -27,7 +27,7 @@ PORT = os.getenv("PORT")
 CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
 SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 HEARTBEAT_MS = int(os.getenv("HEARTBEAT_MS", "500"))
-HEARTBEATS_TO_DEAD = int(os.getenv("HEARTBEATS_TO_DEAD", "2"))
+HEARTBEATS_UNTIL_DEAD = int(os.getenv("HEARTBEATS_UNTIL_DEAD", "2"))
 SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "3000"))
 
 
@@ -47,7 +47,7 @@ async def process_commands():
     logging.error(
         "Heartbeat: %d ms, Heartbeats to dead: %d, Session disconnect grace: %d ms",
         HEARTBEAT_MS,
-        HEARTBEATS_TO_DEAD,
+        HEARTBEATS_UNTIL_DEAD,
         SESSION_DISCONNECT_GRACE_MS,
     )
     client = Client(
@@ -56,7 +56,7 @@ async def process_commands():
         server_id=SERVER_TRANSPORT_ID,
         transport_options=TransportOptions(
             heartbeat_ms=HEARTBEAT_MS,
-            heartbeats_until_dead=HEARTBEATS_TO_DEAD,
+            heartbeats_until_dead=HEARTBEATS_UNTIL_DEAD,
             session_disconnect_grace_ms=SESSION_DISCONNECT_GRACE_MS,
         ),
     )

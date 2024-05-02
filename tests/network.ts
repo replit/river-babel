@@ -75,14 +75,34 @@ const ShouldNotSendBufferAfterSessionDisconnect: Test = {
       { type: "invoke", id: "3", proc: "kv.set", payload: { k: "foo", v: 43 } },
       { type: "wait", ms: SESSION_DISCONNECT_MS }, 
       { type: "connect_network" },
-      { type: "invoke", id: "4", proc: "kv.set", payload: { k: "foo", v: 44 } },
+      { type: "invoke", id: "4", proc: "kv.watch", payload: { k: "foo" }},
+      { type: "invoke", id: "5", proc: "kv.set", payload: { k: "foo", v: 44 } },
     ],
     expectedOutput: [
       { id: "1", status: "ok", payload: 42 },
       { id: "2", status: "ok", payload: 42 },
       { id: "2", status: "err", payload: "UNEXPECTED_DISCONNECT" },
       { id: "3", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "4", status: "ok", payload: 42 }, // watch should return the current value (43 should not be buffered)
       { id: "4", status: "ok", payload: 44 },
+      { id: "5", status: "ok", payload: 44 },
+    ],
+  }
+}
+
+const BufferedMessagesShouldTakePrecedenceOverNewMessages: Test = {
+  client: {
+    actions: [
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "invoke", id: "1", proc: "repeat.echo", init: {} },
+      { type: "invoke", id: "1", proc: "repeat.echo", payload: { s: "hello" } },
+      { type: "connect_network" },
+      { type: "invoke", id: "1", proc: "repeat.echo", payload: { s: "world" } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: "hello" },
+      { id: "1", status: "ok", payload: "world" },
     ],
   }
 }
@@ -232,6 +252,7 @@ export default {
   SurvivesLongSessionIdle,
   SessionDisconnectTest,
   ShouldNotSendBufferAfterSessionDisconnect,
+  BufferedMessagesShouldTakePrecedenceOverNewMessages,
   MessageOrderingPreservedDuringDisconnect,
   BuffersWhileDisconnectedTest,
   SubscriptionDisconnectTest,

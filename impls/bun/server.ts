@@ -11,13 +11,13 @@ const {
   PORT,
   SERVER_TRANSPORT_ID,
   HEARTBEAT_MS,
-  HEARTBEATS_TO_DEAD,
+  HEARTBEATS_UNTIL_DEAD,
   SESSION_DISCONNECT_GRACE_MS,
 } = process.env as Record<string, string>;
 const transportOptions: Partial<TransportOptions> = {
   codec: BinaryCodec,
   heartbeatIntervalMs: parseInt(HEARTBEAT_MS),
-  heartbeatsUntilDead: parseInt(HEARTBEATS_TO_DEAD),
+  heartbeatsUntilDead: parseInt(HEARTBEATS_UNTIL_DEAD),
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
 }
 

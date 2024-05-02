@@ -1,6 +1,13 @@
 # river-babel
 cross-language test-suite
 
+## running tests
+
+- `npm run start -- --client <impl> --server <impl>`
+  - you can see valid impls under `impls` (currently `python` and `bun`)
+- if you are planning on running python tests, you should clone the `python-river`
+  submodule: `git submodule update --init`
+
 ## adding a client or server
 - assume WebSocket transport + Binary codec
 - client should be driven by stdio
@@ -11,7 +18,7 @@ cross-language test-suite
   - `CLIENT_TRANSPORT_ID`
   - `SERVER_TRANSPORT_ID`
   - `HEARTBEAT_MS`
-  - `HEARTBEATS_TO_DEAD`
+  - `HEARTBEATS_UNTIL_DEAD`
   - `SESSION_DISCONNECT_GRACE_MS`
 
 ## workloads
