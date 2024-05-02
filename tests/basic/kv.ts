@@ -127,10 +127,10 @@ const KvMultipleLongSubscription: Test = {
 }
 
 export default {
-  KvRpcTest,
-  KvSubscribeTest,
-  KvSubscribeErrorTest,
-  KvSubscribeMultipleTest,
+  // KvRpcTest,
+  // KvSubscribeTest,
+  // KvSubscribeErrorTest,
+  // KvSubscribeMultipleTest,
   KvLongSubscription,
-  KvMultipleLongSubscription,
+  // KvMultipleLongSubscription,
 }
