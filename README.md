@@ -18,7 +18,7 @@ cross-language test-suite
   - `CLIENT_TRANSPORT_ID`
   - `SERVER_TRANSPORT_ID`
   - `HEARTBEAT_MS`
-  - `HEARTBEATS_TO_DEAD`
+  - `HEARTBEATS_UNTIL_DEAD`
   - `SESSION_DISCONNECT_GRACE_MS`
 
 ## workloads
