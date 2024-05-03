@@ -28,7 +28,7 @@ logging.basicConfig(
 class Observable(Generic[T]):
     def __init__(self, initial_value: T):
         self.value = initial_value
-        self.listeners = set()
+        self.listeners: list = []
 
     def get(self) -> T:
         return self.value
@@ -40,7 +40,7 @@ class Observable(Generic[T]):
             await listener(new_value)
 
     async def observe(self, listener: Callable[[T], None]):
-        self.listeners.add(listener)
+        self.listeners.append(listener)
         await listener(self.get())  # Initial call for the current value
         return lambda: self.listeners.remove(listener)
 
