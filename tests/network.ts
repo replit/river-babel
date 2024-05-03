@@ -303,12 +303,11 @@ const DisconnectMultipleTimes: Test = {
       { type: "wait", ms: SESSION_DISCONNECT_MS }, 
       { type: "connect_network" },
       { type: "invoke", id: "2", proc: "kv.set", payload: { k: "foo", v: 43 } },
-      { type: "wait", ms: 500 },
+      { type: "wait", ms: 3000 }, // give some buffer for budget to restore
       { type: "disconnect_network" },
       { type: "wait", ms: SESSION_DISCONNECT_MS }, 
       { type: "connect_network" },
       { type: "invoke", id: "3", proc: "kv.set", payload: { k: "foo", v: 44 } },
-      { type: "wait", ms: 500 }, 
     ],
     expectedOutput: [
       { id: "1", status: "ok", payload: 42 },
