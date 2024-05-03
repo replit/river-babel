@@ -308,10 +308,11 @@ const DisconnectMultipleTimes: Test = {
       { type: "wait", ms: SESSION_DISCONNECT_MS }, 
       { type: "connect_network" },
       { type: "invoke", id: "3", proc: "kv.set", payload: { k: "foo", v: 44 } },
-      { type: "wait", ms: SESSION_DISCONNECT_MS }, 
+      { type: "wait", ms: 500 }, 
     ],
     expectedOutput: [
       { id: "1", status: "ok", payload: 42 },
+      // TODO: what should be the behavior here?
       { id: "2", status: "ok", payload: 43 },
       { id: "3", status: "ok", payload: 44 },
     ],
@@ -366,7 +367,10 @@ const ComplexSituation: Test = {
       { id: "4", status: "ok", payload: 45 },
       { id: "6", status: "ok", payload: 45 },
       { id: "7", status: "ok", payload: 45 },
-      //
+
+      { id: "2", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "4", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "6", status: "err", payload: "UNEXPECTED_DISCONNECT" },
 
       { id: "11", status: "ok", payload: 42 },
       { id: "12", status: "ok", payload: 42 },
@@ -427,7 +431,10 @@ const ComplexSituation: Test = {
       { id: "4", status: "ok", payload: 15 },
       { id: "6", status: "ok", payload: 15 },
       { id: "7", status: "ok", payload: 15 },
-      //
+
+      { id: "2", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "4", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+      { id: "6", status: "err", payload: "UNEXPECTED_DISCONNECT" },
 
       { id: "11", status: "ok", payload: 12 },
       { id: "12", status: "ok", payload: 12 },
@@ -448,20 +455,20 @@ const ComplexSituation: Test = {
 
 
 export default {
-  // SurvivesTransientNetworkBlips,
-  // ShortConnectionDisconnectTest,
-  // SurvivesLongSessionIdle,
-  // SessionDisconnectTest,
-  // ShouldNotSendBufferAfterSessionDisconnect,
-  // BufferedMessagesShouldTakePrecedenceOverNewMessages,
-  // MessageOrderingPreservedDuringDisconnect,
-  // BuffersWhileDisconnectedTest,
-  // SubscriptionDisconnectTest,
-  // SubscriptionReconnectTest,
-  // TwoClientDisconnectTest,
-  // RepeatedConnectReconnectTest,
-  // WatchDuringDisconnect,
-  // ShortDisconnectMultipleTimes,
-  // DisconnectMultipleTimes,
+  SurvivesTransientNetworkBlips,
+  ShortConnectionDisconnectTest,
+  SurvivesLongSessionIdle,
+  SessionDisconnectTest,
+  ShouldNotSendBufferAfterSessionDisconnect,
+  BufferedMessagesShouldTakePrecedenceOverNewMessages,
+  MessageOrderingPreservedDuringDisconnect,
+  BuffersWhileDisconnectedTest,
+  SubscriptionDisconnectTest,
+  SubscriptionReconnectTest,
+  TwoClientDisconnectTest,
+  RepeatedConnectReconnectTest,
+  WatchDuringDisconnect,
+  ShortDisconnectMultipleTimes,
+  DisconnectMultipleTimes,
   ComplexSituation,
 };
