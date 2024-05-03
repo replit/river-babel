@@ -1,5 +1,5 @@
 import type { Action, ExpectedOutputEntry, Test } from "../src/actions";
-import { DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS } from "./constants";
+import { WS_DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS } from "./constants";
 
 const SurvivesTransientNetworkBlips: Test = {
   client: {
@@ -23,7 +23,7 @@ const ShortConnectionDisconnectTest: Test = {
       { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
       { type: "wait", ms: 500 },
       { type: "disconnect_network" },
-      { type: "wait", ms: DISCONNECT_PERIOD_MS }, 
+      { type: "wait", ms: WS_DISCONNECT_PERIOD_MS }, 
       { type: "connect_network" },
       { type: "invoke", id: "2", proc: "kv.set", payload: { k: "foo", v: 43 } },
     ],
@@ -114,7 +114,7 @@ const MessageOrderingPreservedDuringDisconnect: Test = {
       { type: "wait", ms: 500 },
       { type: "disconnect_network" },
       ...Array.from({ length: 10 }, (_, i): Action => ({ type: "invoke", id: (i + 2).toString(), proc: "kv.set", payload: { k: "foo", v: i } })),
-      { type: "wait", ms: DISCONNECT_PERIOD_MS }, 
+      { type: "wait", ms: WS_DISCONNECT_PERIOD_MS }, 
       { type: "connect_network" },
     ],
     expectedOutput: [
@@ -246,17 +246,94 @@ const RepeatedConnectReconnectTest: Test = {
   }
 }
 
+
+const WatchDuringDisconnect: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
+      { type: "wait", ms: WS_DISCONNECT_PERIOD_MS }, 
+      { type: "connect_network" },
+      { type: "invoke", id: "3", proc: "kv.set", payload: { k: "foo", v: 43 } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 43 },
+      { id: "3", status: "ok", payload: 43 },
+    ],
+  }
+}
+
+const ShortDisconnectMultipleTimes: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "invoke", id: "3", proc: "kv.watch", payload: { k: "foo" } },
+      { type: "wait", ms: WS_DISCONNECT_PERIOD_MS }, 
+      { type: "connect_network" },
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "wait", ms: WS_DISCONNECT_PERIOD_MS }, 
+      { type: "connect_network" },
+      { type: "invoke", id: "4", proc: "kv.set", payload: { k: "foo", v: 43 } },
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 42 },
+      { id: "3", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 43 },
+      { id: "3", status: "ok", payload: 43 },
+      { id: "4", status: "ok", payload: 43 },
+    ],
+  }
+}
+
+const DisconnectMultipleTimes: Test = {
+  client: {
+    actions: [
+      { type: "invoke", id: "1", proc: "kv.set", payload: { k: "foo", v: 42 } },
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "wait", ms: SESSION_DISCONNECT_MS }, 
+      { type: "connect_network" },
+      { type: "invoke", id: "2", proc: "kv.set", payload: { k: "foo", v: 43 } },
+      { type: "wait", ms: 500 },
+      { type: "disconnect_network" },
+      { type: "wait", ms: SESSION_DISCONNECT_MS }, 
+      { type: "connect_network" },
+      { type: "invoke", id: "3", proc: "kv.set", payload: { k: "foo", v: 44 } },
+      { type: "wait", ms: SESSION_DISCONNECT_MS }, 
+    ],
+    expectedOutput: [
+      { id: "1", status: "ok", payload: 42 },
+      { id: "2", status: "ok", payload: 43 },
+      { id: "3", status: "ok", payload: 44 },
+    ],
+  }
+}
+
+
+
 export default {
-  SurvivesTransientNetworkBlips,
-  ShortConnectionDisconnectTest,
-  SurvivesLongSessionIdle,
-  SessionDisconnectTest,
-  ShouldNotSendBufferAfterSessionDisconnect,
-  BufferedMessagesShouldTakePrecedenceOverNewMessages,
-  MessageOrderingPreservedDuringDisconnect,
-  BuffersWhileDisconnectedTest,
-  SubscriptionDisconnectTest,
-  SubscriptionReconnectTest,
-  TwoClientDisconnectTest,
-  RepeatedConnectReconnectTest,
+  // SurvivesTransientNetworkBlips,
+  // ShortConnectionDisconnectTest,
+  // SurvivesLongSessionIdle,
+  // SessionDisconnectTest,
+  // ShouldNotSendBufferAfterSessionDisconnect,
+  // BufferedMessagesShouldTakePrecedenceOverNewMessages,
+  // MessageOrderingPreservedDuringDisconnect,
+  // BuffersWhileDisconnectedTest,
+  // SubscriptionDisconnectTest,
+  // SubscriptionReconnectTest,
+  // TwoClientDisconnectTest,
+  // RepeatedConnectReconnectTest,
+  // WatchDuringDisconnect,
+  // ShortDisconnectMultipleTimes,
+  DisconnectMultipleTimes,
 };

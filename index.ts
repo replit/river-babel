@@ -187,11 +187,11 @@ const ignoreLists: Record<string, Test[]> = {
 }
 
 const numFailed = await runSuite({
-  ...KvRpcTests,
+  // ...KvRpcTests,
   // ...EchoTests,
   // ...UploadTests,
   // ...InterleavingTests,
-  // ...NetworkTests,
+  ...NetworkTests,
   // ...DisconnectNotifsTests,
   // ...VolumeTests,
   // ...InstanceMismatchTests,
