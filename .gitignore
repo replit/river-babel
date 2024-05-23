@@ -181,3 +181,6 @@ schema.json
 *.pyc
 
 .vscode/
+
+# Nix
+/.direnv/
