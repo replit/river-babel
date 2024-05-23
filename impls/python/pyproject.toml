@@ -18,7 +18,7 @@ replit_river = {path = "./river-python", develop = true}
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 mypy = "^1.4.0"
-black = "^23.3.0"
+black = "^24.3.0"
 pytest-cov = "^4.1.0"
 ruff = "^0.0.278"
 pytest-mock = "^3.11.1"
