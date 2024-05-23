@@ -2,6 +2,10 @@
   "name": "bun-river",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "start:server": "tsx server.ts",
+    "start:client": "tsx client.ts"
+  },
   "dependencies": {
     "@replit/river": "^0.17.4",
     "json-schema-to-typescript": "^13.1.2",
@@ -10,7 +14,7 @@
   "devDependencies": {
     "@types/node": "^20.11.30",
     "@types/ws": "^8.5.10",
-    "bun": "^1.0.35",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "tsx": "^4.7.2"
   }
 }
