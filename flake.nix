@@ -14,6 +14,7 @@
         nodejs
         nodePackages.typescript-language-server
         python3
+        bun
       ];
     };
   in

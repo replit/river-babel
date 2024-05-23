@@ -4,7 +4,7 @@ import readline from 'node:readline';
 import { createClient, type Server } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
-import { bindLogger, setLevel } from "@replit/river/logging";
+import { bindLogger } from "@replit/river/logging";
 import type { serviceDefs } from "./serviceDefs";
 import type { Pushable } from "it-pushable";
 
@@ -23,8 +23,7 @@ const transportOptions: Partial<TransportOptions> = {
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
 }
 
-bindLogger(l => process.stderr.write(l + '\n'), true);
-setLevel("debug");
+bindLogger(l => process.stderr.write(l + '\n'), "debug");
 
 const clientTransport = new WebSocketClientTransport(
   () => Promise.resolve(new WebSocket(`ws://river-server:${PORT}`)),
