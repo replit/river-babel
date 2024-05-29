@@ -17,7 +17,7 @@ import VolumeTests from "./tests/volume";
 import InterleavingTests from "./tests/interleaving";
 import InstanceMismatchTests from "./tests/instance_mismatch";
 
-const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
+const { client: clientImpl, server: serverImpl, name: nameFilter } = yargs(hideBin(process.argv))
   .options({
     client: {
       type: "string",
@@ -26,6 +26,10 @@ const { client: clientImpl, server: serverImpl } = yargs(hideBin(process.argv))
     server: {
       type: "string",
       demandOption: true,
+    },
+    name: {
+      type: "string",
+      description: "only run tests that contain the specified string",
     }
   })
   .parseSync();
@@ -91,6 +95,10 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
   let testsFailed = [];
 
   for (const [name, test] of Object.entries(tests)) {
+    if (nameFilter && !name.includes(nameFilter)) {
+      continue;
+    }
+
     if (ignore.includes(test)) {
       console.log(chalk.yellow(`[${name}] skipped`));
       continue;
