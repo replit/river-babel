@@ -4,7 +4,7 @@ import { WebSocketServerTransport } from "@replit/river/transport/ws/server";
 import { createServer } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
-import { bindLogger, setLevel } from "@replit/river/logging";
+import { bindLogger } from "@replit/river/logging";
 import { serviceDefs } from "./serviceDefs";
 
 const {
@@ -21,8 +21,7 @@ const transportOptions: Partial<TransportOptions> = {
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
 }
 
-bindLogger(l => process.stderr.write(l + '\n'), true);
-setLevel("debug");
+bindLogger(l => process.stderr.write(l + '\n'), "debug");
 
 const httpServer = http.createServer();
 const wss = new WebSocketServer({ server: httpServer });
