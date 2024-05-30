@@ -1,4 +1,4 @@
 #! /usr/bin/env bash
 
-cp ./serviceDefs.ts ./impls/bun/serviceDefs.ts
+cp ./serviceDefs.ts ./impls/node/serviceDefs.ts
 echo 'done'
