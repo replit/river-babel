@@ -23,7 +23,7 @@ const transportOptions: Partial<TransportOptions> = {
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
 }
 
-bindLogger(l => process.stderr.write(l + '\n'), "debug");
+bindLogger((msg, ctx, level) => process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`), "debug");
 
 const clientTransport = new WebSocketClientTransport(
   () => Promise.resolve(new WebSocket(`ws://river-server:${PORT}`)),
