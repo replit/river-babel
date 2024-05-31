@@ -15,6 +15,7 @@ const {
   HEARTBEAT_MS,
   HEARTBEATS_UNTIL_DEAD,
   SESSION_DISCONNECT_GRACE_MS,
+  RIVER_SERVER,
 } = process.env as Record<string, string>;
 const transportOptions: Partial<TransportOptions> = {
   codec: BinaryCodec,
@@ -30,7 +31,7 @@ bindLogger(
 );
 
 const clientTransport = new WebSocketClientTransport(
-  () => Promise.resolve(new WebSocket(`ws://river-server:${PORT}`)),
+  () => Promise.resolve(new WebSocket(`ws://${RIVER_SERVER}:${PORT}`)),
   CLIENT_TRANSPORT_ID,
   transportOptions,
 );
