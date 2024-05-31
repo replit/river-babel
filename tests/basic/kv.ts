@@ -13,8 +13,8 @@ const KvRpcTest: Test = {
       { id: "2", status: "ok", payload: 43 },
       { id: "3", status: "ok", payload: 1 },
     ],
-  }
-}
+  },
+};
 
 const KvSubscribeTest: Test = {
   client: {
@@ -39,9 +39,7 @@ const KvSubscribeErrorTest: Test = {
     actions: [
       { type: "invoke", id: "1", proc: "kv.watch", payload: { k: "foo" } },
     ],
-    expectedOutput: [
-      { id: "1", status: "err", payload: "NOT_FOUND" }
-    ],
+    expectedOutput: [{ id: "1", status: "err", payload: "NOT_FOUND" }],
   },
 };
 
@@ -63,7 +61,7 @@ const KvSubscribeMultipleTest: Test = {
       { id: "3", status: "ok", payload: 43 },
 
       // from client2 setting foo to 41
-      { id: "2", status: "ok", payload: 41 }
+      { id: "2", status: "ok", payload: 41 },
     ],
   },
   client2: {
@@ -83,7 +81,6 @@ const KvSubscribeMultipleTest: Test = {
   },
 };
 
-
 const KvLongSubscription: Test = {
   client: {
     actions: [
@@ -98,9 +95,8 @@ const KvLongSubscription: Test = {
       { id: "2", status: "ok", payload: 43 },
       { id: "3", status: "ok", payload: 43 },
     ],
-  }
-}
-
+  },
+};
 
 const KvMultipleLongSubscription: Test = {
   client: {
@@ -123,8 +119,8 @@ const KvMultipleLongSubscription: Test = {
       { id: "4", status: "ok", payload: 44 },
       { id: "5", status: "ok", payload: 44 },
     ],
-  }
-}
+  },
+};
 
 export default {
   KvRpcTest,
@@ -133,4 +129,4 @@ export default {
   KvSubscribeMultipleTest,
   KvLongSubscription,
   KvMultipleLongSubscription,
-}
+};

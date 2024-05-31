@@ -19,13 +19,21 @@ const transportOptions: Partial<TransportOptions> = {
   heartbeatIntervalMs: parseInt(HEARTBEAT_MS),
   heartbeatsUntilDead: parseInt(HEARTBEATS_UNTIL_DEAD),
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
-}
+};
 
-bindLogger((msg, ctx, level) => process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`), "debug");
+bindLogger(
+  (msg, ctx, level) =>
+    process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`),
+  "debug",
+);
 
 const httpServer = http.createServer();
 const wss = new WebSocketServer({ server: httpServer });
-const transport = new WebSocketServerTransport(wss, SERVER_TRANSPORT_ID, transportOptions);
+const transport = new WebSocketServerTransport(
+  wss,
+  SERVER_TRANSPORT_ID,
+  transportOptions,
+);
 export const server = createServer(transport, serviceDefs);
 export type ServiceSurface = typeof server;
 

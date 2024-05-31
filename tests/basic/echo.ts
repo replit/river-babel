@@ -17,9 +17,24 @@ const RepeatEchoTest: Test = {
 const RepeatEchoPrefixTest: Test = {
   client: {
     actions: [
-      { type: "invoke", id: "1", proc: "repeat.echo_prefix", init: { prefix: "prefix: " } },
-      { type: "invoke", id: "1", proc: "repeat.echo_prefix", payload: { str: "hello" } },
-      { type: "invoke", id: "1", proc: "repeat.echo_prefix", payload: { str: "world" } },
+      {
+        type: "invoke",
+        id: "1",
+        proc: "repeat.echo_prefix",
+        init: { prefix: "prefix: " },
+      },
+      {
+        type: "invoke",
+        id: "1",
+        proc: "repeat.echo_prefix",
+        payload: { str: "hello" },
+      },
+      {
+        type: "invoke",
+        id: "1",
+        proc: "repeat.echo_prefix",
+        payload: { str: "world" },
+      },
     ],
     expectedOutput: [
       { id: "1", status: "ok", payload: "prefix: hello" },

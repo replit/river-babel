@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "dump": "bun dumpSchema.ts",
-    "start": "tsx index.ts"
+    "start": "tsx index.ts",
+    "format": "prettier -w '**/*.{js,ts}'",
+    "format:check": "prettier --check '**/*.{js,ts}'"
   },
   "dependencies": {
     "@replit/river": "^0.23.1",
@@ -28,6 +30,7 @@
     "@types/node": "^20.11.30",
     "@types/ws": "^8.5.10",
     "@types/yargs": "^17.0.32",
+    "prettier": "^3.2.5",
     "typescript": "^5.4.3"
   }
 }

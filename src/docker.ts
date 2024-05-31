@@ -6,8 +6,16 @@ import Docker, { type Container } from "dockerode";
 import DockerModem from "docker-modem";
 import logUpdate from "log-update";
 import { PassThrough } from "stream";
-import { serializeInvokeAction, type Action, type ExpectedOutputEntry } from "./actions";
-import { HEARTBEATS_UNTIL_DEAD, HEARTBEAT_MS, SESSION_DISCONNECT_GRACE } from "../tests/constants";
+import {
+  serializeInvokeAction,
+  type Action,
+  type ExpectedOutputEntry,
+} from "./actions";
+import {
+  HEARTBEATS_UNTIL_DEAD,
+  HEARTBEAT_MS,
+  SESSION_DISCONNECT_GRACE,
+} from "../tests/constants";
 
 const docker = new Docker();
 const modem = new DockerModem();
@@ -67,7 +75,7 @@ export async function buildImage(impl: string, type: "client" | "server") {
       context: ctxPath,
       src: ["."],
     },
-    { t: `river-babel-${impl}-${type}`, dockerfile: name }
+    { t: `river-babel-${impl}-${type}`, dockerfile: name },
   );
 
   let status = "";
@@ -89,7 +97,7 @@ export async function buildImage(impl: string, type: "client" | "server") {
 
           status = progress.status;
         }
-      }
+      },
     );
   });
 
@@ -151,16 +159,18 @@ export async function setupContainer(
   type: "client" | "server",
   nameOverride?: string,
 ): Promise<ContainerHandle> {
-  const impl = type === 'client' ? clientImpl : serverImpl;
+  const impl = type === "client" ? clientImpl : serverImpl;
   const imageName = `river-babel-${impl}-${type}`;
-  const containerName = nameOverride ? `river-${nameOverride}` : `river-${type}`;
+  const containerName = nameOverride
+    ? `river-${nameOverride}`
+    : `river-${type}`;
   const getContainerId = async () => {
     const containers = await docker.listContainers({
       all: true,
       filters: { name: [containerName] },
     });
     return containers.find((c) => c.Image === imageName)?.Id;
-  }
+  };
 
   let container: Docker.Container;
   let containerId = await getContainerId();
@@ -181,7 +191,9 @@ export async function setupContainer(
       OpenStdin: true,
       Env: [
         "PORT=8080",
-        nameOverride ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}` : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
+        nameOverride
+          ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}`
+          : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
         `SERVER_TRANSPORT_ID=${serverImpl}-server`,
         `HEARTBEAT_MS=${HEARTBEAT_MS}`,
         `HEARTBEATS_UNTIL_DEAD=${HEARTBEATS_UNTIL_DEAD}`,
@@ -204,7 +216,7 @@ export async function setupContainer(
       const c = docker.getContainer(id);
       await c.remove({ force: true });
     }
-  }
+  };
 
   cleanupFns.push(removeContainerIfExists);
 
@@ -222,7 +234,7 @@ export async function setupContainer(
 export async function applyAction(
   network: Docker.Network,
   containerHandle: ContainerHandle,
-  action: Action
+  action: Action,
 ) {
   if (action.type === "invoke") {
     containerHandle.stdin.write(serializeInvokeAction(action) + "\n");
@@ -232,23 +244,35 @@ export async function applyAction(
     await containerHandle.container.stop({ t: 0 });
     await containerHandle.container.start();
 
-    const [stdin, stdout, stderr] = await containerStreams(containerHandle.container);
+    const [stdin, stdout, stderr] = await containerStreams(
+      containerHandle.container,
+    );
     containerHandle.stdin = stdin;
-    containerHandle.stdout = Promise.all([containerHandle.stdout, streamToString(stdout)]).then(outs => outs.join(""));
-    containerHandle.stderr = Promise.all([containerHandle.stderr, Promise.resolve("=== container restart ===\n"), streamToString(stderr)]).then(outs => outs.join(""));
+    containerHandle.stdout = Promise.all([
+      containerHandle.stdout,
+      streamToString(stdout),
+    ]).then((outs) => outs.join(""));
+    containerHandle.stderr = Promise.all([
+      containerHandle.stderr,
+      Promise.resolve("=== container restart ===\n"),
+      streamToString(stderr),
+    ]).then((outs) => outs.join(""));
 
     const oldCleanup = containerHandle.cleanup;
     const newCleanup = async () => {
       stdout.end();
       stderr.end();
       await oldCleanup();
-    }
+    };
 
     containerHandle.cleanup = newCleanup;
   } else if (action.type === "connect_network") {
     await network.connect({ Container: containerHandle.container.id });
   } else if (action.type === "disconnect_network") {
-    await network.disconnect({ Container: containerHandle.container.id, force: true });
+    await network.disconnect({
+      Container: containerHandle.container.id,
+      force: true,
+    });
   } else if (action.type === "pause_container") {
     await containerHandle.container.pause();
   } else if (action.type === "unpause_container") {

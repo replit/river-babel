@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 import { WebSocketClientTransport } from "@replit/river/transport/ws/client";
-import readline from 'node:readline';
+import readline from "node:readline";
 import { createClient, type Server } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
@@ -21,9 +21,13 @@ const transportOptions: Partial<TransportOptions> = {
   heartbeatIntervalMs: parseInt(HEARTBEAT_MS),
   heartbeatsUntilDead: parseInt(HEARTBEATS_UNTIL_DEAD),
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
-}
+};
 
-bindLogger((msg, ctx, level) => process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`), "debug");
+bindLogger(
+  (msg, ctx, level) =>
+    process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`),
+  "debug",
+);
 
 const clientTransport = new WebSocketClientTransport(
   () => Promise.resolve(new WebSocket(`ws://river-server:${PORT}`)),
@@ -31,30 +35,36 @@ const clientTransport = new WebSocketClientTransport(
   transportOptions,
 );
 
-const client = createClient<Server<typeof serviceDefs>>(clientTransport, SERVER_TRANSPORT_ID, {
-  connectOnInvoke: true,
-  eagerlyConnect: true
-});
+const client = createClient<Server<typeof serviceDefs>>(
+  clientTransport,
+  SERVER_TRANSPORT_ID,
+  {
+    connectOnInvoke: true,
+    eagerlyConnect: true,
+  },
+);
 
 // listen for jepsen driver commands
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  terminal: false
+  terminal: false,
 });
 
 const handles = new Map<string, Pushable<unknown>>();
 for await (const line of rl) {
-  const match = line.match(/(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/);
+  const match = line.match(
+    /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
+  );
   if (!match || !match.groups) {
     console.error("FATAL: invalid command", line);
     process.exit(1);
   }
 
   const { id, svc, proc, payload } = match.groups;
-  if (svc === 'kv') {
-    if (proc === 'set') {
-      const [k, v] = payload.split(' ');
+  if (svc === "kv") {
+    if (proc === "set") {
+      const [k, v] = payload.split(" ");
       const res = await client.kv.set.rpc({ k, v: parseInt(v) });
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
@@ -73,8 +83,8 @@ for await (const line of rl) {
         }
       })();
     }
-  } else if (svc === 'repeat') {
-    if (proc === 'echo') {
+  } else if (svc === "repeat") {
+    if (proc === "echo") {
       if (!handles.has(id)) {
         const [input, output] = await client.repeat.echo.stream();
         (async () => {
@@ -91,9 +101,11 @@ for await (const line of rl) {
       } else {
         handles.get(id)!.push({ str: payload });
       }
-    } else if (proc === 'echo_prefix') {
+    } else if (proc === "echo_prefix") {
       if (!handles.has(id)) {
-        const [input, output] = await client.repeat.echo_prefix.stream({ prefix: payload });
+        const [input, output] = await client.repeat.echo_prefix.stream({
+          prefix: payload,
+        });
         (async () => {
           for await (const v of output) {
             if (v.ok) {
@@ -109,8 +121,8 @@ for await (const line of rl) {
         handles.get(id)!.push({ str: payload });
       }
     }
-  } else if (svc === 'upload') {
-    if (proc === 'send') {
+  } else if (svc === "upload") {
+    if (proc === "send") {
       if (!handles.has(id)) {
         const [input, res] = await client.upload.send.upload();
         handles.set(id, input);
