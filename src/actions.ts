@@ -119,9 +119,13 @@ export function serializeExpectedOutputEntry(entry: ExpectedOutputEntry) {
   return `${entry.id} -- ${entry.status}:${entry.payload}`;
 }
 
-export type Test = Record<string, {
-  actions: Action[],
-  expectedOutput: ExpectedOutputEntry[],
-} | {
-  serverActions: Exclude<Action, InvokeActions>[],
-}>;
+export type Test = Record<
+  string,
+  | {
+      actions: Action[];
+      expectedOutput: ExpectedOutputEntry[];
+    }
+  | {
+      serverActions: Exclude<Action, InvokeActions>[];
+    }
+>;
