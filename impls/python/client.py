@@ -29,6 +29,7 @@ SERVER_TRANSPORT_ID = os.getenv("SERVER_TRANSPORT_ID")
 HEARTBEAT_MS = int(os.getenv("HEARTBEAT_MS", "500"))
 HEARTBEATS_UNTIL_DEAD = int(os.getenv("HEARTBEATS_UNTIL_DEAD", "2"))
 SESSION_DISCONNECT_GRACE_MS = int(os.getenv("SESSION_DISCONNECT_GRACE_MS", "3000"))
+RIVER_SERVER = os.getenv("RIVER_SERVER")
 
 
 logging.basicConfig(
@@ -43,7 +44,7 @@ tasks: Dict[str, asyncio.Task] = {}
 
 async def process_commands():
     logging.error("start python river client")
-    uri = f"ws://river-server:{PORT}"
+    uri = f"ws://{RIVER_SERVER}:{PORT}"
     logging.error(
         "Heartbeat: %d ms, Heartbeats to dead: %d, Session disconnect grace: %d ms",
         HEARTBEAT_MS,
