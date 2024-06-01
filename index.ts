@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import chalk from "chalk";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -124,7 +125,9 @@ async function runSuite(
     }
 
     console.log(chalk.yellow(`[${name}] setup`));
+    const testId = randomBytes(8).toString("hex");
     const serverContainer = await setupContainer(
+      testId,
       clientImpl,
       serverImpl,
       "server",
@@ -139,6 +142,7 @@ async function runSuite(
         // client case
         const { actions, expectedOutput } = testEntry;
         const container = await setupContainer(
+          testId,
           clientImpl,
           serverImpl,
           "client",

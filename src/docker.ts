@@ -21,6 +21,7 @@ const docker = new Docker();
 const modem = new DockerModem();
 
 export interface ContainerHandle {
+  name: string;
   container: Container;
   cleanup: () => Promise<unknown>;
   stdin: NodeJS.WritableStream;
@@ -154,6 +155,7 @@ function streamToString(stream: NodeJS.WritableStream): Promise<string> {
 }
 
 export async function setupContainer(
+  testId: string,
   clientImpl: string,
   serverImpl: string,
   type: "client" | "server",
@@ -162,8 +164,8 @@ export async function setupContainer(
   const impl = type === "client" ? clientImpl : serverImpl;
   const imageName = `river-babel-${impl}-${type}`;
   const containerName = nameOverride
-    ? `river-${nameOverride}`
-    : `river-${type}`;
+    ? `river-${nameOverride}-${testId}`
+    : `river-${type}-${testId}`;
   const getContainerId = async () => {
     const containers = await docker.listContainers({
       all: true,
@@ -174,34 +176,40 @@ export async function setupContainer(
 
   let container: Docker.Container;
   let containerId = await getContainerId();
-  if (!containerId) {
-    console.log(chalk.blue(`creating ${type} container`));
-    container = await docker.createContainer({
-      Image: imageName,
-      name: containerName,
-      ExposedPorts: {
-        "8080/tcp": {},
-      },
-      HostConfig: {
-        NetworkMode: NETWORK_NAME,
-      },
-      AttachStdin: true,
-      AttachStderr: true,
-      AttachStdout: true,
-      OpenStdin: true,
-      Env: [
-        "PORT=8080",
-        nameOverride
-          ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}`
-          : `CLIENT_TRANSPORT_ID=${impl}-${type}`,
-        `SERVER_TRANSPORT_ID=${serverImpl}-server`,
-        `HEARTBEAT_MS=${HEARTBEAT_MS}`,
-        `HEARTBEATS_UNTIL_DEAD=${HEARTBEATS_UNTIL_DEAD}`,
-        `SESSION_DISCONNECT_GRACE_MS=${SESSION_DISCONNECT_GRACE}`,
-      ],
-    });
-    containerId = container.id;
+  if (containerId) {
+    console.log(chalk.yellow(`cleaning up old ${type} container`));
+    const oldContainer = docker.getContainer(containerId);
+    await oldContainer.remove({ force: true });
   }
+
+  console.log(chalk.blue(`creating ${type} container`));
+  container = await docker.createContainer({
+    Image: imageName,
+    name: containerName,
+    ExposedPorts: {
+      "8080/tcp": {},
+    },
+    HostConfig: {
+      NetworkMode: NETWORK_NAME,
+      AutoRemove: true,
+    },
+    AttachStdin: true,
+    AttachStderr: true,
+    AttachStdout: true,
+    OpenStdin: true,
+    Env: [
+      "PORT=8080",
+      `RIVER_SERVER=river-server-${testId}`,
+      nameOverride
+        ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}-${testId}`
+        : `CLIENT_TRANSPORT_ID=${impl}-${type}-${testId}`,
+      `SERVER_TRANSPORT_ID=${serverImpl}-server`,
+      `HEARTBEAT_MS=${HEARTBEAT_MS}`,
+      `HEARTBEATS_UNTIL_DEAD=${HEARTBEATS_UNTIL_DEAD}`,
+      `SESSION_DISCONNECT_GRACE_MS=${SESSION_DISCONNECT_GRACE}`,
+    ],
+  });
+  containerId = container.id;
 
   container ??= docker.getContainer(containerId);
   await container.start();
@@ -214,15 +222,15 @@ export async function setupContainer(
     if (id) {
       console.log(chalk.blue(`cleanup: removing ${type} container`));
       const c = docker.getContainer(id);
-      await c.remove({ force: true });
+      await c.stop({ t: 5 });
     }
   };
 
   cleanupFns.push(removeContainerIfExists);
 
   // warm up the container
-  await new Promise((resolve) => setTimeout(resolve, 1000));
   return {
+    name: containerName,
     container,
     stdin,
     stdout: streamToString(stdout),
