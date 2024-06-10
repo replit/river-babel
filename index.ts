@@ -113,6 +113,7 @@ async function runSuite(
   console.log("\n" + chalk.black.bgYellow(" TESTS "));
   let numTests = 0;
   let testsFailed = [];
+  let testsFlaked = [];
 
   for (const [name, test] of Object.entries(tests)) {
     if (nameFilter && !name.includes(nameFilter)) {
@@ -132,34 +133,31 @@ async function runSuite(
       serverImpl,
       "server",
     );
-    let serverActions: Exclude<Action, InvokeActions>[] = [];
 
+    let serverActions: Exclude<Action, InvokeActions>[] =
+      test.server?.serverActions ?? [];
     const containers: Record<string, ClientContainer> = {};
-    for (const [clientName, testEntry] of Object.entries(test)) {
-      if ("serverActions" in testEntry) {
-        serverActions = testEntry.serverActions;
-      } else {
-        // client case
-        const { actions, expectedOutput } = testEntry;
-        const container = await setupContainer(
-          testId,
-          clientImpl,
-          serverImpl,
-          "client",
-          clientName,
-        );
-        containers[clientName] = {
-          ...container,
-          actions,
-          expectedOutput,
-        };
-      }
+    for (const [clientName, testEntry] of Object.entries(test.clients)) {
+      // client case
+      const { actions, expectedOutput } = testEntry;
+      const container = await setupContainer(
+        testId,
+        clientImpl,
+        serverImpl,
+        "client",
+        clientName,
+      );
+      containers[clientName] = {
+        ...container,
+        actions,
+        expectedOutput,
+      };
     }
 
     console.log(chalk.yellow(`[${name}] run`));
     await Promise.all([
       (async () => {
-        for (const action of serverActions ?? []) {
+        for (const action of serverActions) {
           await applyAction(network, serverContainer, action);
         }
       })(),
@@ -191,9 +189,16 @@ async function runSuite(
 
       if (hasDiff) {
         testFailed = true;
-        console.log(
-          chalk.red(`[${name}] ${clientName} `) + chalk.black.bgRed(` FAIL `),
-        );
+        if (test.flaky) {
+          console.log(
+            chalk.red(`[${name}] ${clientName} `) +
+              chalk.black.bgMagenta(` FLAKE `),
+          );
+        } else {
+          console.log(
+            chalk.red(`[${name}] ${clientName} `) + chalk.black.bgRed(` FAIL `),
+          );
+        }
         console.log(diff + "\n");
 
         console.log(chalk.yellow(`[${name}] ${clientName} logs`));
@@ -209,7 +214,11 @@ async function runSuite(
     if (testFailed) {
       console.log(chalk.yellow(`[${name}] server logs`));
       console.log(await serverContainer.stderr);
-      testsFailed.push(name);
+      if (test.flaky) {
+        testsFlaked.push(name);
+      } else {
+        testsFailed.push(name);
+      }
     }
 
     numTests++;
@@ -218,8 +227,14 @@ async function runSuite(
 
   console.log(chalk.black.bgYellow(" SUMMARY "));
   console.log(
-    chalk.green(`passed ${numTests - testsFailed.length}/${numTests}`),
+    chalk.green(
+      `passed ${numTests - (testsFailed.length + testsFlaked.length)}/${numTests}`,
+    ),
   );
+  if (testsFlaked.length) {
+    console.log(chalk.magenta(`flaked:`));
+    testsFlaked.forEach((name) => console.log(chalk.red(`- ${name}`)));
+  }
   if (testsFailed.length) {
     console.log(chalk.red(`failed:`));
     testsFailed.forEach((name) => console.log(chalk.red(`- ${name}`)));
