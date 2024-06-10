@@ -24,11 +24,14 @@ import DisconnectNotifsTests from "./tests/disconnect_notifs";
 import VolumeTests from "./tests/volume";
 import InterleavingTests from "./tests/interleaving";
 import InstanceMismatchTests from "./tests/instance_mismatch";
+import type { Network } from "dockerode";
+import { PromisePool } from "@supercharge/promise-pool";
 
 const {
   client: clientImpl,
   server: serverImpl,
   name: nameFilter,
+  parallel,
 } = yargs(hideBin(process.argv))
   .options({
     client: {
@@ -42,6 +45,11 @@ const {
     name: {
       type: "string",
       description: "only run tests that contain the specified string",
+    },
+    parallel: {
+      type: "number",
+      default: 16,
+      description: "number of tests to run in parallel",
     },
   })
   .parseSync();
@@ -112,119 +120,40 @@ async function runSuite(
 
   console.log("\n" + chalk.black.bgYellow(" TESTS "));
   let numTests = 0;
-  let testsFailed = [];
-  let testsFlaked = [];
+  let testsFailed: Array<string> = [];
+  let testsFlaked: Array<string> = [];
 
-  for (const [name, test] of Object.entries(tests)) {
-    if (nameFilter && !name.includes(nameFilter)) {
-      continue;
-    }
-
-    if (ignore.includes(test)) {
-      console.log(chalk.yellow(`[${name}] skipped`));
-      continue;
-    }
-
-    console.log(chalk.yellow(`[${name}] setup`));
-    const testId = randomBytes(8).toString("hex");
-    const serverContainer = await setupContainer(
-      testId,
-      clientImpl,
-      serverImpl,
-      "server",
-    );
-
-    let serverActions: Exclude<Action, InvokeActions>[] =
-      test.server?.serverActions ?? [];
-    const containers: Record<string, ClientContainer> = {};
-    for (const [clientName, testEntry] of Object.entries(test.clients)) {
-      // client case
-      const { actions, expectedOutput } = testEntry;
-      const container = await setupContainer(
-        testId,
-        clientImpl,
-        serverImpl,
-        "client",
-        clientName,
-      );
-      containers[clientName] = {
-        ...container,
-        actions,
-        expectedOutput,
-      };
-    }
-
-    console.log(chalk.yellow(`[${name}] run`));
-    await Promise.all([
-      (async () => {
-        for (const action of serverActions) {
-          await applyAction(network, serverContainer, action);
-        }
-      })(),
-      ...Object.entries(containers).map(async ([_clientName, client]) => {
-        for (const action of client.actions) {
-          await applyAction(network, client, action);
-        }
-      }),
-    ]);
-
-    // wait a little bit to finish processing
-    console.log(chalk.yellow(`[${name}] cleanup`));
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    await Promise.all(
-      Object.values(containers).map(async (client) => await client.cleanup()),
-    );
-    await serverContainer.cleanup();
-
-    console.log(chalk.yellow(`[${name}] check`));
-
-    // for each client diff actual output with expected output
-    let testFailed = false;
-    for (const [clientName, client] of Object.entries(containers)) {
-      const expectedOutput = client.expectedOutput
-        .map(serializeExpectedOutputEntry)
-        .join("\n");
-      const actualOutput = await client.stdout;
-      const [diff, hasDiff] = constructDiffString(expectedOutput, actualOutput);
-
-      if (hasDiff) {
-        testFailed = true;
-        if (test.flaky) {
-          console.log(
-            chalk.red(`[${name}] ${clientName} `) +
-              chalk.black.bgMagenta(` FLAKE `),
-          );
-        } else {
-          console.log(
-            chalk.red(`[${name}] ${clientName} `) + chalk.black.bgRed(` FAIL `),
-          );
-        }
-        console.log(diff + "\n");
-
-        console.log(chalk.yellow(`[${name}] ${clientName} logs`));
-        console.log(await client.stderr);
-      } else {
-        console.log(
-          chalk.green(`[${name}] ${clientName} `) +
-            chalk.black.bgGreen(` PASS `),
-        );
+  await PromisePool.withConcurrency(parallel)
+    .for(Object.entries(tests))
+    .process(async ([name, test]) => {
+      if (nameFilter && !name.includes(nameFilter)) {
+        return;
       }
-    }
 
-    if (testFailed) {
-      console.log(chalk.yellow(`[${name}] server logs`));
-      console.log(await serverContainer.stderr);
-      if (test.flaky) {
-        testsFlaked.push(name);
-      } else {
+      if (ignore.includes(test)) {
+        console.log(chalk.yellow(`[${name}] skipped`));
+        return;
+      }
+
+      try {
+        const result = await runTest(name, test, network);
+        printTestResults(name, test, result);
+
+        if (!result.ok) {
+          if (test.flaky) {
+            testsFlaked.push(name);
+          } else {
+            testsFailed.push(name);
+          }
+        }
+
+        numTests++;
+      } catch (e) {
         testsFailed.push(name);
       }
-    }
+    });
 
-    numTests++;
-    console.log("\n");
-  }
-
+  testsFailed.sort();
   console.log(chalk.black.bgYellow(" SUMMARY "));
   console.log(
     chalk.green(
@@ -241,6 +170,130 @@ async function runSuite(
   }
 
   return testsFailed.length;
+}
+
+interface TestResult {
+  ok: boolean;
+  serverLogs: string;
+  clientResults: Record<string, ClientResult>;
+}
+
+type ClientResult = { ok: true } | { ok: false; diff: string; logs: string };
+
+async function runTest(
+  name: string,
+  test: Test,
+  network: Network,
+): Promise<TestResult> {
+  console.log(chalk.yellow(`[${name}] setup`));
+  const testId = randomBytes(8).toString("hex");
+  const serverContainer = await setupContainer(
+    testId,
+    clientImpl,
+    serverImpl,
+    "server",
+  );
+
+  const containers: Record<string, ClientContainer> = {};
+  for (const [clientName, testEntry] of Object.entries(test.clients)) {
+    // client case
+    const { actions, expectedOutput } = testEntry;
+    const container = await setupContainer(
+      testId,
+      clientImpl,
+      serverImpl,
+      "client",
+      clientName,
+    );
+    containers[clientName] = {
+      ...container,
+      actions,
+      expectedOutput,
+    };
+  }
+
+  console.log(chalk.yellow(`[${name}] run`));
+  await Promise.all([
+    (async () => {
+      for (const action of test.server?.serverActions ?? []) {
+        await applyAction(network, serverContainer, action);
+      }
+    })(),
+    ...Object.entries(containers).map(async ([_clientName, client]) => {
+      for (const action of client.actions) {
+        await applyAction(network, client, action);
+      }
+    }),
+  ]);
+
+  // wait a little bit to finish processing
+  console.log(chalk.yellow(`[${name}] cleanup`));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await Promise.all(
+    Object.values(containers).map(async (client) => await client.cleanup()),
+  );
+  await serverContainer.cleanup();
+
+  // for each client diff actual output with expected output
+  let testFailed = false;
+  const clientResults: TestResult["clientResults"] = {};
+  for (const [clientName, client] of Object.entries(containers)) {
+    const expectedOutput = client.expectedOutput
+      .map(serializeExpectedOutputEntry)
+      .join("\n");
+    const actualOutput = await client.stdout;
+    const [diff, hasDiff] = constructDiffString(expectedOutput, actualOutput);
+
+    if (hasDiff) {
+      testFailed = true;
+      clientResults[clientName] = {
+        ok: false,
+        diff,
+        logs: await client.stderr,
+      };
+    } else {
+      clientResults[clientName] = { ok: true };
+    }
+  }
+
+  return {
+    ok: !testFailed,
+    serverLogs: await serverContainer.stderr,
+    clientResults,
+  };
+}
+
+function printTestResults(name: string, test: Test, result: TestResult) {
+  console.log(chalk.yellow(`[${name}] check`));
+  for (const [clientName, clientResult] of Object.entries(
+    result.clientResults,
+  )) {
+    if (clientResult.ok) {
+      console.log(
+        chalk.green(`[${name}] ${clientName} `) + chalk.black.bgGreen(` PASS `),
+      );
+    } else {
+      if (test.flaky) {
+        console.log(
+          chalk.red(`[${name}] ${clientName} `) +
+            chalk.black.bgMagenta(` FLAKE `),
+        );
+      } else {
+        console.log(
+          chalk.red(`[${name}] ${clientName} `) + chalk.black.bgRed(` FAIL `),
+        );
+      }
+      console.log(clientResult.diff + "\n");
+
+      console.log(chalk.yellow(`[${name}] ${clientName} logs`));
+      console.log(clientResult.logs);
+    }
+  }
+
+  if (!result.ok) {
+    console.log(chalk.yellow(`[${name}] server logs`));
+    console.log(result.serverLogs);
+  }
 }
 
 // run the test suite with specific ignore lists
