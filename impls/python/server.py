@@ -1,12 +1,15 @@
-import asyncio
+import http
 import logging
 import os
-from typing import Any, AsyncIterator, Callable, Dict, Generic, TypeVar
+from typing import Any, AsyncIterator, Callable, Dict, Generic, TypeVar, Optional
 
 import replit_river as river
 
+import asyncio
 from replit_river.error_schema import RiverError
 from replit_river.transport_options import TransportOptions
+from websockets import Headers
+from websockets.legacy.server import HTTPResponse
 from websockets.server import serve
 from protos import service_pb2, service_pb2_grpc, service_river
 
@@ -129,8 +132,17 @@ async def start_server() -> None:
     done: asyncio.Future[None] = asyncio.Future()
     started: asyncio.Future[None] = asyncio.Future()
 
+    async def process_request(path: str, _: Headers) -> Optional[HTTPResponse]:
+        if path == "/healthz":
+            return http.HTTPStatus.OK, [], b"OK\n"
+
     async def _serve() -> None:
-        async with serve(server.serve, "0.0.0.0", 8080):
+        async with serve(
+            server.serve,
+            host="0.0.0.0",
+            port=8080,
+            process_request=process_request,
+        ):
             started.set_result(None)
             logging.info("started test")
             await done
