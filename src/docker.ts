@@ -235,21 +235,21 @@ export async function setupContainer(
       const c = docker.getContainer(containerId);
       try {
         await c.stop({ t: 5 });
-      } catch (err) {
+      } catch (err: any) {
         // If the container is already stopped, let it be.
-        if (err.statusCode === 304) return;
+        if ("statusCode" in err && err.statusCode === 304) return;
         throw err;
       }
       try {
         await c.remove({ force: true });
-      } catch (err) {
+      } catch (err: any) {
         // If the removal is already in progress, let it be.
-        if (err.statusCode === 409) return;
+        if ("statusCode" in err && err.statusCode === 409) return;
         throw err;
       }
-    } catch (err) {
+    } catch (err: any) {
       // If the container was not found, let it be.
-      if (err.statusCode === 404) return;
+      if ("statusCode" in err && err.statusCode === 404) return;
       throw err;
     }
   };
@@ -263,7 +263,7 @@ export async function setupContainer(
     for (let remaining = 100; remaining >= 0; remaining--) {
       try {
         // We just need for the fetch to give us something that looks like HTTP back.
-        await fetch(address, { header: { Connection: "close" } });
+        await fetch(address, { headers: { Connection: "close" } });
         break;
       } catch (err) {
         if (remaining === 0) {
