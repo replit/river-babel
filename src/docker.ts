@@ -83,7 +83,19 @@ export async function buildImage(impl: string, type: "client" | "server") {
   await new Promise((resolve, reject) => {
     modem.followProgress(
       resp,
-      (err, res) => (err ? reject(err) : resolve(res)),
+      (err, res) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        for (const entry of res) {
+          if ("error" in entry) {
+            reject(entry.errorDetail.message);
+            return;
+          }
+        }
+        resolve(res);
+      },
       (progress) => {
         if ("stream" in progress) {
           process.stdout.write(progress.stream);
@@ -191,7 +203,7 @@ export async function setupContainer(
     },
     HostConfig: {
       NetworkMode: NETWORK_NAME,
-      AutoRemove: true,
+      AutoRemove: false,
     },
     AttachStdin: true,
     AttachStderr: true,
@@ -218,17 +230,50 @@ export async function setupContainer(
   const removeContainerIfExists = async () => {
     stdout.end();
     stderr.end();
-    const id = await getContainerId();
-    if (id) {
-      console.log(chalk.blue(`cleanup: removing ${type} container`));
-      const c = docker.getContainer(id);
-      await c.stop({ t: 5 });
+    console.log(chalk.blue(`cleanup: removing ${type} container`));
+    try {
+      const c = docker.getContainer(containerId);
+      try {
+        await c.stop({ t: 5 });
+      } catch (err) {
+        // If the container is already stopped, let it be.
+        if (err.statusCode === 304) return;
+        throw err;
+      }
+      try {
+        await c.remove({ force: true });
+      } catch (err) {
+        // If the removal is already in progress, let it be.
+        if (err.statusCode === 409) return;
+        throw err;
+      }
+    } catch (err) {
+      // If the container was not found, let it be.
+      if (err.statusCode === 404) return;
+      throw err;
     }
   };
 
   cleanupFns.push(removeContainerIfExists);
 
-  // warm up the container
+  // warm up the container. wait 10s until we get at least one good result back.
+  if (type === "server") {
+    const { NetworkSettings: networkSettings } = await container.inspect();
+    const address = `http://${networkSettings.Networks[NETWORK_NAME].IPAddress}:8080/healthz`;
+    for (let remaining = 100; remaining >= 0; remaining--) {
+      try {
+        // We just need for the fetch to give us something that looks like HTTP back.
+        await fetch(address, { header: { Connection: "close" } });
+        break;
+      } catch (err) {
+        if (remaining === 0) {
+          // Last chance, give up.
+          throw err;
+        }
+      }
+      await new Promise((accept) => setTimeout(accept, 100));
+    }
+  }
   return {
     name: containerName,
     container,

@@ -31,7 +31,15 @@ bindLogger(
 );
 
 const clientTransport = new WebSocketClientTransport(
-  () => Promise.resolve(new WebSocket(`ws://${RIVER_SERVER}:${PORT}`)),
+  () =>
+    (async (): Promise<WsLike> => {
+      const ws = new WebSocket(`ws://${RIVER_SERVER}:${PORT}`);
+      // Explicitly set an error handler to avoid unhandled exceptions.
+      ws.on("error", (err) => {
+        console.error(err);
+      });
+      return ws;
+    })(),
   CLIENT_TRANSPORT_ID,
   transportOptions,
 );

@@ -27,7 +27,14 @@ bindLogger(
   "debug",
 );
 
-const httpServer = http.createServer();
+const httpServer = http.createServer((req, res) => {
+  if (req.url === "/healthz") {
+    res.end("OK");
+    return;
+  }
+  res.statusCode = 426;
+  res.end("Upgrade required");
+});
 const wss = new WebSocketServer({ server: httpServer });
 const transport = new WebSocketServerTransport(
   wss,

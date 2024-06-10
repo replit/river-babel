@@ -4,7 +4,8 @@ cross-language test-suite
 ## running tests
 
 - `npm run start -- --client <impl> --server <impl>`
-  - you can see valid impls under `impls` (currently `python` and `bun`)
+  - you can see valid impls under `impls` (currently `python` and `node`, although apparently `bun`
+    still works for the time being).
 - if you are planning on running python tests, you should clone the `python-river`
   submodule: `git submodule update --init`
 
