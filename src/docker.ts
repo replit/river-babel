@@ -28,6 +28,7 @@ export interface ContainerHandle {
   name: string;
   container: Container;
   cleanup: () => Promise<unknown>;
+  syncBarriers: Record<string, () => Promise<void>>;
   responses: Pushable<{ id: string; status: "ok" | "err"; payload: string }>;
   stdin: NodeJS.WritableStream;
   stdout: Promise<string>;
@@ -305,6 +306,7 @@ export async function setupContainer(
       await removeContainerIfExists();
       responses.end();
     },
+    syncBarriers: {},
   };
 }
 
@@ -396,7 +398,30 @@ async function applyActionCommon(
   containerHandle: ContainerHandle,
   action: CommonAction,
 ) {
-  if (action.type === "sleep") {
+  if (action.type === "sync") {
+    if (!(action.label in containerHandle.syncBarriers)) {
+      throw new Error(`sync barrier ${action.label} not found`);
+    }
+    let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
+    const timeoutPromise: Promise<true> = new Promise((resolve) => {
+      const timeoutMs = action.timeout ?? 5000;
+      timeoutId = setTimeout(() => {
+        console.error(
+          chalk.red(
+            `sync: timeout waiting for ${action.label} after ${timeoutMs}ms`,
+          ),
+        );
+        resolve(true);
+      }, timeoutMs);
+    });
+    const timedOut = await Promise.race([
+      containerHandle.syncBarriers[action.label](),
+      timeoutPromise,
+    ]);
+    if (timedOut !== true && timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  } else if (action.type === "sleep") {
     await new Promise((resolve) => setTimeout(resolve, action.ms));
   } else if (action.type === "restart_container") {
     await containerHandle.container.stop({ t: 0 });

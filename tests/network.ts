@@ -307,7 +307,7 @@ const SubscriptionReconnectTest: Test = {
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
         { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
-        { type: "sleep", ms: 800 },
+        { type: "sleep", ms: 500 },
         {
           type: "invoke",
           id: "3",
@@ -334,7 +334,6 @@ const SubscriptionReconnectTest: Test = {
 };
 
 const TwoClientDisconnectTest: Test = {
-  flaky: true,
   clients: {
     client1: {
       actions: [
@@ -346,6 +345,7 @@ const TwoClientDisconnectTest: Test = {
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
         { type: "wait_response", id: "2" },
+        { type: "sync", label: "2" },
         { type: "disconnect_network" },
         {
           type: "invoke",
@@ -353,7 +353,7 @@ const TwoClientDisconnectTest: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 1 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "sync", label: "6" },
         { type: "connect_network" },
       ],
       expectedOutput: [
@@ -366,7 +366,7 @@ const TwoClientDisconnectTest: Test = {
     },
     client2: {
       actions: [
-        { type: "sleep", ms: 800 },
+        { type: "sync", label: "2" },
         { type: "invoke", id: "5", proc: "kv.watch", payload: { k: "foo" } },
         {
           type: "invoke",
@@ -375,6 +375,7 @@ const TwoClientDisconnectTest: Test = {
           payload: { k: "foo", v: 46 },
         },
         { type: "wait_response", id: "6" },
+        { type: "sync", label: "6" },
       ],
       expectedOutput: [
         { id: "5", status: "ok", payload: 42 },
