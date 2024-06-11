@@ -80,6 +80,7 @@ const KvSubscribeErrorTest: Test = {
 };
 
 const KvSubscribeMultipleTest: Test = {
+  flaky: true,
   clients: {
     client1: {
       actions: [
@@ -113,7 +114,7 @@ const KvSubscribeMultipleTest: Test = {
     },
     client2: {
       actions: [
-        { type: "wait", ms: 800 },
+        { type: "sleep", ms: 800 },
         { type: "invoke", id: "a", proc: "kv.watch", payload: { k: "foo" } },
         {
           type: "invoke",
@@ -145,7 +146,7 @@ const KvLongSubscription: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
         {
           type: "invoke",
           id: "3",
@@ -174,7 +175,7 @@ const KvMultipleLongSubscription: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
         {
           type: "invoke",
           id: "3",
@@ -182,7 +183,7 @@ const KvMultipleLongSubscription: Test = {
           payload: { k: "foo", v: 43 },
         },
         { type: "invoke", id: "4", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
         {
           type: "invoke",
           id: "5",

@@ -43,7 +43,7 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
           proc: "upload.send",
           payload: { part: "abc" },
         },
-        { type: "wait", ms: 3000 },
+        { type: "sleep", ms: 3000 },
         {
           type: "invoke",
           id: "1",
@@ -63,7 +63,7 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
     },
   },
   server: {
-    serverActions: [{ type: "wait", ms: 100 }, { type: "restart_container" }],
+    serverActions: [{ type: "sleep", ms: 100 }, { type: "restart_container" }],
   },
 };
 
