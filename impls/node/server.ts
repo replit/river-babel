@@ -4,7 +4,6 @@ import { WebSocketServerTransport } from "@replit/river/transport/ws/server";
 import { createServer } from "@replit/river";
 import type { TransportOptions } from "@replit/river/transport";
 import { BinaryCodec } from "@replit/river/codec";
-import { bindLogger } from "@replit/river/logging";
 import { serviceDefs } from "./serviceDefs";
 
 const {
@@ -21,12 +20,6 @@ const transportOptions: Partial<TransportOptions> = {
   sessionDisconnectGraceMs: parseInt(SESSION_DISCONNECT_GRACE_MS),
 };
 
-bindLogger(
-  (msg, ctx, level) =>
-    process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`),
-  "debug",
-);
-
 const httpServer = http.createServer((req, res) => {
   if (req.url === "/healthz") {
     res.end("OK");
@@ -41,7 +34,15 @@ const transport = new WebSocketServerTransport(
   SERVER_TRANSPORT_ID,
   transportOptions,
 );
+transport.bindLogger(
+  (msg, ctx, level) =>
+    process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`),
+  "debug",
+);
 export const server = createServer(transport, serviceDefs);
 export type ServiceSurface = typeof server;
 
-httpServer.listen(parseInt(PORT));
+const startTime = Date.now();
+httpServer.listen(parseInt(PORT), () => {
+  transport.log?.debug(`pid2 started in ${Date.now() - startTime}ms`);
+});
