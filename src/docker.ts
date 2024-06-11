@@ -8,7 +8,9 @@ import logUpdate from "log-update";
 import { PassThrough } from "stream";
 import {
   serializeInvokeAction,
-  type Action,
+  type CommonAction,
+  type ClientAction,
+  type ServerAction,
   type ExpectedOutputEntry,
 } from "./actions";
 import {
@@ -30,7 +32,7 @@ export interface ContainerHandle {
 }
 
 export type ClientContainer = {
-  actions: Action[];
+  actions: ClientAction[];
   expectedOutput: ExpectedOutputEntry[];
 } & ContainerHandle;
 
@@ -258,21 +260,7 @@ export async function setupContainer(
 
   // warm up the container. wait 10s until we get at least one good result back.
   if (type === "server") {
-    const { NetworkSettings: networkSettings } = await container.inspect();
-    const address = `http://${networkSettings.Networks[NETWORK_NAME].IPAddress}:8080/healthz`;
-    for (let remaining = 100; remaining >= 0; remaining--) {
-      try {
-        // We just need for the fetch to give us something that looks like HTTP back.
-        await fetch(address, { headers: { Connection: "close" } });
-        break;
-      } catch (err) {
-        if (remaining === 0) {
-          // Last chance, give up.
-          throw err;
-        }
-      }
-      await new Promise((accept) => setTimeout(accept, 100));
-    }
+    healthCheck(container);
   }
   return {
     name: containerName,
@@ -284,14 +272,54 @@ export async function setupContainer(
   };
 }
 
-export async function applyAction(
+async function healthCheck(container: Container) {
+  const { NetworkSettings: networkSettings } = await container.inspect();
+  const address = `http://${networkSettings.Networks[NETWORK_NAME].IPAddress}:8080/healthz`;
+  for (let remaining = 100; remaining >= 0; remaining--) {
+    try {
+      // We just need for the fetch to give us something that looks like HTTP back.
+      await fetch(address, { headers: { Connection: "close" } });
+      break;
+    } catch (err) {
+      if (remaining === 0) {
+        // Last chance, give up.
+        throw err;
+      }
+    }
+    await new Promise((accept) => setTimeout(accept, 100));
+  }
+}
+
+export async function applyActionClient(
   network: Docker.Network,
   containerHandle: ContainerHandle,
-  action: Action,
+  action: ClientAction,
 ) {
   if (action.type === "invoke") {
     containerHandle.stdin.write(serializeInvokeAction(action) + "\n");
-  } else if (action.type === "wait") {
+    return;
+  }
+
+  await applyActionCommon(network, containerHandle, action);
+}
+
+export async function applyActionServer(
+  network: Docker.Network,
+  containerHandle: ContainerHandle,
+  action: ServerAction,
+) {
+  await applyActionCommon(network, containerHandle, action);
+  if (action.type == "restart_container") {
+    healthCheck(containerHandle.container);
+  }
+}
+
+async function applyActionCommon(
+  network: Docker.Network,
+  containerHandle: ContainerHandle,
+  action: CommonAction,
+) {
+  if (action.type === "sleep") {
     await new Promise((resolve) => setTimeout(resolve, action.ms));
   } else if (action.type === "restart_container") {
     await containerHandle.container.stop({ t: 0 });

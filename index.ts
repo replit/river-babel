@@ -5,14 +5,14 @@ import { hideBin } from "yargs/helpers";
 import {
   type Test,
   serializeExpectedOutputEntry,
-  type Action,
-  type InvokeActions,
+  type ServerAction,
 } from "./src/actions";
 import {
   buildImage,
   cleanup,
   setupNetwork,
-  applyAction,
+  applyActionClient,
+  applyActionServer,
   setupContainer,
   type ClientContainer,
 } from "./src/docker";
@@ -134,8 +134,7 @@ async function runSuite(
       "server",
     );
 
-    let serverActions: Exclude<Action, InvokeActions>[] =
-      test.server?.serverActions ?? [];
+    let serverActions: ServerAction[] = test.server?.serverActions ?? [];
     const containers: Record<string, ClientContainer> = {};
     for (const [clientName, testEntry] of Object.entries(test.clients)) {
       // client case
@@ -158,12 +157,12 @@ async function runSuite(
     await Promise.all([
       (async () => {
         for (const action of serverActions) {
-          await applyAction(network, serverContainer, action);
+          await applyActionServer(network, serverContainer, action);
         }
       })(),
       ...Object.entries(containers).map(async ([_clientName, client]) => {
         for (const action of client.actions) {
-          await applyAction(network, client, action);
+          await applyActionClient(network, client, action);
         }
       }),
     ]);

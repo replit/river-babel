@@ -12,7 +12,7 @@ const RpcDisconnectNotifs: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "wait", ms: 500 },
+        { type: "sleep", ms: 500 },
         { type: "disconnect_network" },
         // invoking after disconnected should eventually tell us unexpected disconnect
         {
@@ -21,7 +21,7 @@ const RpcDisconnectNotifs: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 43 },
         },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
       ],
       expectedOutput: [
         { id: "1", status: "ok", payload: 42 },
@@ -43,9 +43,9 @@ const SubscribeDisconnectNotifs: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "wait", ms: 500 },
+        { type: "sleep", ms: 500 },
         { type: "disconnect_network" },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
       ],
       expectedOutput: [
         { id: "1", status: "ok", payload: 42 },
@@ -68,9 +68,9 @@ const StreamDisconnectNotifs: Test = {
           proc: "repeat.echo",
           payload: { s: "hello" },
         },
-        { type: "wait", ms: 500 },
+        { type: "sleep", ms: 500 },
         { type: "disconnect_network" },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
       ],
       expectedOutput: [
         { id: "1", status: "ok", payload: "hello" },
@@ -98,9 +98,9 @@ const UploadDisconnectNotifs: Test = {
           proc: "upload.send",
           payload: { part: "def" },
         },
-        { type: "wait", ms: 500 },
+        { type: "sleep", ms: 500 },
         { type: "disconnect_network" },
-        { type: "wait", ms: SESSION_DISCONNECT_MS },
+        { type: "sleep", ms: SESSION_DISCONNECT_MS },
       ],
       expectedOutput: [
         { id: "1", status: "err", payload: "UNEXPECTED_DISCONNECT" },

@@ -1,8 +1,7 @@
 // driver actions for each container
-export type Action =
-  | InvokeActions
+export type CommonAction =
   | {
-      type: "wait";
+      type: "sleep";
       ms: number;
     }
   | {
@@ -21,7 +20,11 @@ export type Action =
       type: "unpause_container";
     };
 
-export type InvokeActions =
+export type ClientAction = CommonAction | InvokeAction;
+
+export type ServerAction = CommonAction;
+
+export type InvokeAction =
   | {
       type: "invoke";
       id: string;
@@ -79,7 +82,7 @@ export type InvokeActions =
       payload: { part: string };
     };
 
-export function serializeInvokeAction(action: InvokeActions) {
+export function serializeInvokeAction(action: InvokeAction) {
   let payload: string = "";
   if (action.proc === "kv.set") {
     payload = `${action.payload.k} ${action.payload.v}`;
@@ -123,12 +126,12 @@ export type Test = {
   clients: Record<
     string,
     {
-      actions: Action[];
+      actions: ClientAction[];
       expectedOutput: ExpectedOutputEntry[];
     }
   >;
   server?: {
-    serverActions: Exclude<Action, InvokeActions>[];
+    serverActions: ServerAction[];
   };
   flaky?: boolean;
 };
