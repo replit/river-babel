@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@replit/river':
-    specifier: ^0.14.0
-    version: 0.14.1(@sinclair/typebox@0.32.20)(isomorphic-ws@5.0.0)(ws@8.16.0)
+    specifier: ^0.23.9
+    version: 0.23.9(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.32.20)
   '@sinclair/typebox':
     specifier: ^0.32.20
     version: 0.32.20
@@ -64,6 +64,9 @@ devDependencies:
   '@types/yargs':
     specifier: ^17.0.32
     version: 17.0.32
+  prettier:
+    specifier: ^3.2.5
+    version: 3.3.1
   typescript:
     specifier: ^5.4.3
     version: 5.4.4
@@ -286,20 +289,27 @@ packages:
     engines: {node: '>= 14'}
     dev: false
 
-  /@replit/river@0.14.1(@sinclair/typebox@0.32.20)(isomorphic-ws@5.0.0)(ws@8.16.0):
-    resolution: {integrity: sha512-F+hiLQZaYPXgGT2d9YOgmGJd+KydbLXG+V/VokUsLIuKo4xMmoHi9GTsh3x6jiBYJdyqcxjCAVRVFHGwB54b3A==}
+  /@opentelemetry/api@1.9.0:
+    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
+    engines: {node: '>=8.0.0'}
+    dev: false
+
+  /@replit/river@0.23.9(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.32.20):
+    resolution: {integrity: sha512-Mi/bmB4OUnTxvSAx2TzOSKoiTtuzsv/V5JjHQEYJkjtjA/f4fZtHntJep67CBVkMVn3HYXn0M6Qi67VzUckn3w==}
     engines: {node: '>=16'}
     peerDependencies:
+      '@opentelemetry/api': ^1.7.0
       '@sinclair/typebox': ~0.32.8
-      isomorphic-ws: ^5.0.0
-      ws: ^8.13.0
     dependencies:
       '@msgpack/msgpack': 3.0.0-beta2
+      '@opentelemetry/api': 1.9.0
       '@sinclair/typebox': 0.32.20
-      isomorphic-ws: 5.0.0(ws@8.16.0)
       it-pushable: 3.2.3
       nanoid: 4.0.2
-      ws: 8.16.0
+      ws: 8.17.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
     dev: false
 
   /@sinclair/typebox@0.32.20:
@@ -682,6 +692,12 @@ packages:
     engines: {node: '>=12'}
     dev: false
 
+  /prettier@3.3.1:
+    resolution: {integrity: sha512-7CAwy5dRsxs8PHXT3twixW9/OEll8MLE0VRPCJyl7CkS6VHGPSlsVaWTiASPTyGyYRyApxlaWTzwUxVNrhcwDg==}
+    engines: {node: '>=14'}
+    hasBin: true
+    dev: true
+
   /pump@3.0.0:
     resolution: {integrity: sha512-LwZy+p3SFs1Pytd/jYct4wpv49HiYCqd9Rlc5ZVdk0V+8Yzv6jR5Blk3TRmPL1ft69TxP0IMZGJ+WPFU2BFhww==}
     dependencies:
@@ -862,6 +878,19 @@ packages:
 
   /ws@8.16.0:
     resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dev: false
+
+  /ws@8.17.0:
+    resolution: {integrity: sha512-uJq6108EgZMAl20KagGkzCKfMEjxmKvZHG7Tlq0Z6nOky7YF7aq4mOx6xK8TJ/i1LeK4Qus7INktacctDgY8Ow==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
