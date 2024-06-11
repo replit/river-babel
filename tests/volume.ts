@@ -1,8 +1,7 @@
-import type { ClientAction, Test } from "../src/actions";
+import type { ClientAction, ExpectedOutputEntry, Test } from "../src/actions";
 
 const MANY = 5000;
 const ManyRpcs: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -15,7 +14,7 @@ const ManyRpcs: Test = {
             payload: { k: "foo", v: i },
           }),
         ),
-        { type: "sleep", ms: 3000 },
+        { type: "wait_response", id: MANY.toString(), timeout: 30000 },
       ],
       expectedOutput: Array.from({ length: MANY }, (_, i) => ({
         id: (i + 1).toString(),
@@ -27,7 +26,6 @@ const ManyRpcs: Test = {
 };
 
 const ManyStreams: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -38,16 +36,27 @@ const ManyStreams: Test = {
             type: "invoke",
             id: "1",
             proc: "repeat.echo",
-            payload: { s: i.toString() },
+            payload: { s: (i + 1).toString() },
           }),
         ),
-        { type: "sleep", ms: 2000 },
+        {
+          type: "wait_response",
+          id: "1",
+          status: "ok",
+          payload: MANY.toString(),
+          timeout: 30000,
+        },
       ],
-      expectedOutput: Array.from({ length: MANY }, (_, i) => ({
-        id: "1",
-        status: "ok",
-        payload: i.toString(),
-      })),
+      expectedOutput: [
+        ...Array.from(
+          { length: MANY },
+          (_, i): ExpectedOutputEntry => ({
+            id: "1",
+            status: "ok",
+            payload: (i + 1).toString(),
+          }),
+        ),
+      ],
     },
   },
 };

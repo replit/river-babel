@@ -2,7 +2,6 @@ import type { ClientAction, ExpectedOutputEntry, Test } from "../src/actions";
 import { WS_DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS } from "./constants";
 
 const SurvivesTransientNetworkBlips: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -12,7 +11,7 @@ const SurvivesTransientNetworkBlips: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "1" },
         { type: "disconnect_network" },
         { type: "connect_network" },
         {
@@ -40,7 +39,7 @@ const ShortConnectionDisconnectTest: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "1" },
         { type: "disconnect_network" },
         { type: "sleep", ms: WS_DISCONNECT_PERIOD_MS },
         { type: "connect_network" },
@@ -70,7 +69,7 @@ const SessionDisconnectTest: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "1" },
         { type: "disconnect_network" },
         { type: "sleep", ms: SESSION_DISCONNECT_MS },
         { type: "connect_network" },
@@ -99,6 +98,7 @@ const SurvivesLongSessionIdle: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
+        { type: "wait_response", id: "1" },
         { type: "sleep", ms: 10000 },
         {
           type: "invoke",
@@ -127,7 +127,7 @@ const ShouldNotSendBufferAfterSessionDisconnect: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
         {
           type: "invoke",
@@ -197,7 +197,7 @@ const MessageOrderingPreservedDuringDisconnect: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "1" },
         { type: "disconnect_network" },
         ...Array.from(
           { length: 10 },
@@ -261,7 +261,6 @@ const BuffersWhileDisconnectedTest: Test = {
 };
 
 const SubscriptionDisconnectTest: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -272,7 +271,7 @@ const SubscriptionDisconnectTest: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "sleep", ms: 800 },
+        { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
         {
           type: "invoke",
@@ -296,7 +295,6 @@ const SubscriptionDisconnectTest: Test = {
 };
 
 const SubscriptionReconnectTest: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -307,6 +305,7 @@ const SubscriptionReconnectTest: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
+        { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
         { type: "sleep", ms: 800 },
         {
@@ -346,7 +345,7 @@ const TwoClientDisconnectTest: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
         {
           type: "invoke",
@@ -375,6 +374,7 @@ const TwoClientDisconnectTest: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 46 },
         },
+        { type: "wait_response", id: "6" },
       ],
       expectedOutput: [
         { id: "5", status: "ok", payload: 42 },
@@ -387,7 +387,6 @@ const TwoClientDisconnectTest: Test = {
 };
 
 const RepeatedConnectReconnectTest: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -409,6 +408,7 @@ const RepeatedConnectReconnectTest: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 44 },
         },
+        { type: "wait_response", id: "3" },
         { type: "disconnect_network" },
         { type: "sleep", ms: 500 },
         { type: "connect_network" },
@@ -477,7 +477,7 @@ const WatchDuringDisconnect: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "1" },
         { type: "disconnect_network" },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
         { type: "sleep", ms: WS_DISCONNECT_PERIOD_MS },
@@ -500,7 +500,6 @@ const WatchDuringDisconnect: Test = {
 };
 
 const ShortDisconnectMultipleTimes: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -511,7 +510,7 @@ const ShortDisconnectMultipleTimes: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "invoke", id: "2", proc: "kv.watch", payload: { k: "foo" } },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
         { type: "invoke", id: "3", proc: "kv.watch", payload: { k: "foo" } },
         { type: "sleep", ms: WS_DISCONNECT_PERIOD_MS },
@@ -526,6 +525,7 @@ const ShortDisconnectMultipleTimes: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 43 },
         },
+        { type: "wait_response", id: "4" },
       ],
       expectedOutput: [
         { id: "1", status: "ok", payload: 42 },
@@ -550,7 +550,7 @@ const DisconnectMultipleTimes: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 42 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "1" },
         { type: "disconnect_network" },
         { type: "sleep", ms: SESSION_DISCONNECT_MS },
         { type: "connect_network" },
@@ -560,7 +560,7 @@ const DisconnectMultipleTimes: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 43 },
         },
-        { type: "sleep", ms: 3000 }, // give some buffer for budget to restore
+        { type: "wait_response", id: "2" },
         { type: "disconnect_network" },
         { type: "sleep", ms: SESSION_DISCONNECT_MS },
         { type: "connect_network" },
@@ -570,6 +570,7 @@ const DisconnectMultipleTimes: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 44 },
         },
+        { type: "wait_response", id: "3" },
       ],
       expectedOutput: [
         { id: "1", status: "ok", payload: 42 },
@@ -616,7 +617,7 @@ const ComplexSituation: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 45 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "7" },
         { type: "disconnect_network" },
         { type: "sleep", ms: SESSION_DISCONNECT_MS },
         { type: "connect_network" },
@@ -652,7 +653,7 @@ const ComplexSituation: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 45 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "17" },
       ],
 
       expectedOutput: [
@@ -721,7 +722,7 @@ const ComplexSituation: Test = {
           proc: "kv.set",
           payload: { k: "bar", v: 15 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "7" },
         { type: "disconnect_network" },
         { type: "sleep", ms: SESSION_DISCONNECT_MS },
         { type: "connect_network" },
@@ -757,7 +758,7 @@ const ComplexSituation: Test = {
           proc: "kv.set",
           payload: { k: "bar", v: 15 },
         },
-        { type: "sleep", ms: 500 },
+        { type: "wait_response", id: "17" },
       ],
       expectedOutput: [
         { id: "1", status: "ok", payload: 12 },

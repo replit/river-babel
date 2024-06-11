@@ -97,6 +97,7 @@ const KvSubscribeMultipleTest: Test = {
           proc: "kv.set",
           payload: { k: "foo", v: 43 },
         },
+        { type: "wait_response", id: "3" },
       ],
       expectedOutput: [
         // set foo 42

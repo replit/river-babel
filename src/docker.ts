@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs";
 import chalk from "chalk";
+import split2 from "split2";
+import { pushable, type Pushable } from "it-pushable";
 import { exec } from "child_process";
 import Docker, { type Container } from "dockerode";
 import DockerModem from "docker-modem";
@@ -26,6 +28,7 @@ export interface ContainerHandle {
   name: string;
   container: Container;
   cleanup: () => Promise<unknown>;
+  responses: Pushable<{ id: string; status: "ok" | "err"; payload: string }>;
   stdin: NodeJS.WritableStream;
   stdout: Promise<string>;
   stderr: Promise<string>;
@@ -159,7 +162,31 @@ async function containerStreams(container: Container) {
   return [serverStream, outputStream, logStream] as const;
 }
 
-function streamToString(stream: NodeJS.WritableStream): Promise<string> {
+function stdoutStreamToString(
+  stream: NodeJS.WritableStream,
+  responses: Pushable<{ id: string; status: "ok" | "err"; payload: string }>,
+): Promise<string> {
+  const lineStream = stream.pipe(split2());
+  const lines: string[] = [];
+  return new Promise((resolve, reject) => {
+    lineStream.on("data", (chunk: Buffer) => {
+      const line = chunk.toString("utf8");
+      const match = line.match(/(?<id>\w+) -- (?<status>[^:]+):(?<payload>.+)/);
+      if (match && match.groups) {
+        responses.push({
+          id: match.groups.id,
+          status: match.groups.status as "ok" | "err",
+          payload: match.groups.payload.trim(),
+        });
+      }
+      lines.push(line);
+    });
+    lineStream.on("error", (err) => reject(err));
+    lineStream.on("end", () => resolve(lines.join("\n")));
+  });
+}
+
+function stderrStreamToString(stream: NodeJS.WritableStream): Promise<string> {
   const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
     stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
@@ -262,13 +289,22 @@ export async function setupContainer(
   if (type === "server") {
     healthCheck(container);
   }
+  const responses: Pushable<{
+    id: string;
+    status: "ok" | "err";
+    payload: string;
+  }> = pushable({ objectMode: true });
   return {
     name: containerName,
     container,
+    responses,
     stdin,
-    stdout: streamToString(stdout),
-    stderr: streamToString(stderr),
-    cleanup: removeContainerIfExists,
+    stdout: stdoutStreamToString(stdout, responses),
+    stderr: stderrStreamToString(stderr),
+    cleanup: async () => {
+      await removeContainerIfExists();
+      responses.end();
+    },
   };
 }
 
@@ -295,7 +331,48 @@ export async function applyActionClient(
   containerHandle: ContainerHandle,
   action: ClientAction,
 ) {
-  if (action.type === "invoke") {
+  if (action.type === "wait_response") {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
+    const timeoutPromise: Promise<{
+      done: boolean;
+      value?: { id: string; status: "ok" | "err"; payload: string };
+    }> = new Promise((accept) => {
+      const timeoutMs = action.timeout ?? 5000;
+      timeoutId = setTimeout(() => {
+        console.error(
+          chalk.red(
+            `wait_response: timeout waiting for ${action.id} after ${timeoutMs}ms`,
+          ),
+        );
+        accept({ done: true, value: undefined });
+      }, timeoutMs);
+    });
+    while (true) {
+      const responsePromise = containerHandle.responses.next();
+      const { done, value: response } = await Promise.race([
+        responsePromise,
+        timeoutPromise,
+      ]);
+
+      if (done) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        console.error(chalk.red(`wait_response: never saw id ${action.id}`));
+        return;
+      } else if (
+        response &&
+        response.id === action.id &&
+        (action.status === undefined || response.status == action.status) &&
+        (action.payload === undefined || response.payload == action.payload)
+      ) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        return;
+      }
+    }
+  } else if (action.type === "invoke") {
     containerHandle.stdin.write(serializeInvokeAction(action) + "\n");
     return;
   }
@@ -331,12 +408,12 @@ async function applyActionCommon(
     containerHandle.stdin = stdin;
     containerHandle.stdout = Promise.all([
       containerHandle.stdout,
-      streamToString(stdout),
+      stdoutStreamToString(stdout, containerHandle.responses),
     ]).then((outs) => outs.join(""));
     containerHandle.stderr = Promise.all([
       containerHandle.stderr,
       Promise.resolve("=== container restart ===\n"),
-      streamToString(stderr),
+      stderrStreamToString(stderr),
     ]).then((outs) => outs.join(""));
 
     const oldCleanup = containerHandle.cleanup;
