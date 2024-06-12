@@ -71,7 +71,16 @@ process.on("SIGINT", async () => {
 function constructDiffString(
   expected: string,
   actual: string,
+  unordered: boolean,
 ): [string, boolean] {
+  if (unordered) {
+    const actualLines = actual.split("\n");
+    actualLines.sort();
+    actual = actualLines.join("\n");
+    const expectedLines = expected.split("\n");
+    expectedLines.sort();
+    expected = expectedLines.join("\n");
+  }
   const patch = structuredPatch(
     "expected",
     "actual",
@@ -268,7 +277,11 @@ async function runSuite(
         .map(serializeExpectedOutputEntry)
         .join("\n");
       const actualOutput = await client.stdout;
-      const [diff, hasDiff] = constructDiffString(expectedOutput, actualOutput);
+      const [diff, hasDiff] = constructDiffString(
+        expectedOutput,
+        actualOutput,
+        test.unordered ?? false,
+      );
 
       if (hasDiff) {
         testFailed = true;

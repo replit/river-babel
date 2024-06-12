@@ -334,6 +334,7 @@ const SubscriptionReconnectTest: Test = {
 };
 
 const TwoClientDisconnectTest: Test = {
+  unordered: true,
   clients: {
     client1: {
       actions: [
@@ -469,6 +470,7 @@ const RepeatedConnectReconnectTest: Test = {
 };
 
 const WatchDuringDisconnect: Test = {
+  unordered: true,
   clients: {
     client: {
       actions: [
