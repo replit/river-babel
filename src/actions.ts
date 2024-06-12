@@ -1,6 +1,11 @@
 // driver actions for each container
 export type CommonAction =
   | {
+      type: "sync";
+      label: string;
+      timeout?: number;
+    }
+  | {
       type: "sleep";
       ms: number;
     }

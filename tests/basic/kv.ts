@@ -80,7 +80,6 @@ const KvSubscribeErrorTest: Test = {
 };
 
 const KvSubscribeMultipleTest: Test = {
-  flaky: true,
   clients: {
     client1: {
       actions: [
@@ -98,6 +97,7 @@ const KvSubscribeMultipleTest: Test = {
           payload: { k: "foo", v: 43 },
         },
         { type: "wait_response", id: "3" },
+        { type: "sync", label: "43" },
       ],
       expectedOutput: [
         // set foo 42
@@ -115,7 +115,7 @@ const KvSubscribeMultipleTest: Test = {
     },
     client2: {
       actions: [
-        { type: "sleep", ms: 800 },
+        { type: "sync", label: "43" },
         { type: "invoke", id: "a", proc: "kv.watch", payload: { k: "foo" } },
         {
           type: "invoke",

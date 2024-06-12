@@ -167,6 +167,75 @@ async function runSuite(
       };
     }
 
+    // build the map of syncpoints to promises.
+    const syncPromises: Record<
+      string,
+      Record<string, { promise: Promise<void>; resolve: () => void }>
+    > = {};
+    const processSyncAction = (name: string, label: string) => {
+      if (!(label in syncPromises)) {
+        syncPromises[label] = {};
+      }
+      let resolve: () => void;
+      const promise = new Promise((_resolve) => {
+        resolve = _resolve;
+      });
+      syncPromises[label][name] = {
+        resolve,
+        promise,
+      };
+    };
+    for (const action of serverActions) {
+      if (action.type !== "sync") continue;
+      processSyncAction("server", action.label);
+    }
+    for (const [clientName, client] of Object.entries(containers)) {
+      for (const action of client.actions) {
+        if (action.type !== "sync") continue;
+        processSyncAction(clientName, action.label);
+      }
+    }
+    // build the barriers out of the sync promises.
+    const syncBarriers: Record<string, Promise<void>> = {};
+    for (const [label, promises] of Object.entries(syncPromises)) {
+      const promiseArray: Array<Promise<void>> = [];
+      for (const { promise } of Object.values(promises)) {
+        promiseArray.push(promise);
+      }
+      syncBarriers[label] = Promise.all(promiseArray);
+    }
+    // install the barriers in all containers.
+    for (const action of serverActions) {
+      if (action.type !== "sync") continue;
+      if (
+        !(action.label in syncBarriers) ||
+        !(action.label in syncPromises) ||
+        !("server" in syncPromises[action.label])
+      ) {
+        throw new Error(`sync barrier ${action.label} not found`);
+      }
+      serverContainer.syncBarriers[action.label] = () => {
+        syncPromises[action.label]["server"].resolve();
+        return syncBarriers[action.label];
+      };
+    }
+    for (const [clientName, client] of Object.entries(containers)) {
+      for (const action of client.actions) {
+        if (action.type !== "sync") continue;
+        if (
+          !(action.label in syncBarriers) ||
+          !(action.label in syncPromises) ||
+          !(clientName in syncPromises[action.label])
+        ) {
+          throw new Error(`sync barrier ${action.label} not found`);
+        }
+        client.syncBarriers[action.label] = () => {
+          syncPromises[action.label][clientName].resolve();
+          return syncBarriers[action.label];
+        };
+      }
+    }
+
     console.log(chalk.yellow(`[${name}] run`));
     await Promise.all([
       (async () => {

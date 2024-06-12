@@ -32,11 +32,9 @@ const MismatchedClientInstanceDoesntGetResentStaleMessagesFromServer: Test = {
 };
 
 const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
-        { type: "invoke", id: "1", proc: "upload.send", init: {} },
         {
           type: "invoke",
           id: "1",
@@ -44,6 +42,7 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
           payload: { k: "foo", v: 42 },
         },
         { type: "wait_response", id: "1" },
+        { type: "sync", label: "1" },
         { type: "invoke", id: "2", proc: "upload.send", init: {} },
         {
           type: "invoke",
@@ -54,24 +53,28 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
         { type: "wait_response", id: "2" },
         {
           type: "invoke",
-          id: "1",
+          id: "2",
           proc: "upload.send",
           payload: { part: "def" },
         },
         {
           type: "invoke",
-          id: "1",
+          id: "2",
           proc: "upload.send",
           payload: { part: "EOF" },
         },
       ],
       expectedOutput: [
-        { id: "1", status: "err", payload: "UNEXPECTED_DISCONNECT" },
+        { id: "1", status: "ok", payload: 42 },
+        { id: "2", status: "err", payload: "UNEXPECTED_DISCONNECT" },
       ],
     },
   },
   server: {
-    serverActions: [{ type: "restart_container" }],
+    serverActions: [
+      { type: "sync", label: "1" },
+      { type: "restart_container" },
+    ],
   },
 };
 
