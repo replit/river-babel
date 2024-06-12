@@ -110,9 +110,11 @@ async function runSuite(
   ignore: Test[],
 ): Promise<number> {
   // setup
+  console.log("::group::Setup");
   await buildImage(clientImpl, "client");
   await buildImage(serverImpl, "server");
   const network = await setupNetwork();
+  console.log("::endgroup::");
 
   const suiteStart = new Date();
   const suite = builder

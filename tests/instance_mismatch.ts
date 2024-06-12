@@ -40,10 +40,18 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
         {
           type: "invoke",
           id: "1",
+          proc: "kv.set",
+          payload: { k: "foo", v: 42 },
+        },
+        { type: "wait_response", id: "1" },
+        { type: "invoke", id: "2", proc: "upload.send", init: {} },
+        {
+          type: "invoke",
+          id: "2",
           proc: "upload.send",
           payload: { part: "abc" },
         },
-        { type: "sleep", ms: 3000 },
+        { type: "wait_response", id: "2" },
         {
           type: "invoke",
           id: "1",
@@ -63,7 +71,7 @@ const MismatchedServerInstanceDoesntGetResentStaleMessagesFromClient: Test = {
     },
   },
   server: {
-    serverActions: [{ type: "sleep", ms: 100 }, { type: "restart_container" }],
+    serverActions: [{ type: "restart_container" }],
   },
 };
 

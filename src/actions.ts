@@ -20,7 +20,17 @@ export type CommonAction =
       type: "unpause_container";
     };
 
-export type ClientAction = CommonAction | InvokeAction;
+export type ClientAction =
+  | CommonAction
+  | InvokeAction
+  | {
+      type: "wait_response";
+      id: string;
+      // If status/payload are set, only match the message if the payload of the response matches them.
+      status?: "ok" | "err";
+      payload?: string;
+      timeout?: number;
+    };
 
 export type ServerAction = CommonAction;
 
