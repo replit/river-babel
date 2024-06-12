@@ -68,3 +68,13 @@ jobs:
 
       - name: Test
         run: npm run start -- --client ${{ matrix.client }} --server ${{ matrix.server }}
+
+      - name: Report
+        run: npx xunit-viewer --results  tests/results/ --console --clear=false --output tests/results/${{ matrix.client }}-${{ matrix.server }}
+        if: always()
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.client }}-${{ matrix.server }}
+          path: tests/results/${{ matrix.client }}-${{ matrix.server }}.xml

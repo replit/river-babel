@@ -1,7 +1,10 @@
 import { randomBytes } from "crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { structuredPatch } from "diff";
 import chalk from "chalk";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import builder from "junit-report-builder";
 import {
   type Test,
   serializeExpectedOutputEntry,
@@ -69,36 +72,37 @@ function constructDiffString(
   expected: string,
   actual: string,
 ): [string, boolean] {
-  const expectedLines = expected.split("\n");
-  const actualLines = actual.split("\n");
-  const maxLength = Math.max(expectedLines.length, actualLines.length);
-
-  const maxLineLength = Math.max(
-    ...expectedLines.map((line) => line.length),
-    ...actualLines.map((line) => line.length),
+  const patch = structuredPatch(
+    "expected",
+    "actual",
+    expected.trimEnd() + "\n",
+    actual.trimEnd() + "\n",
   );
+  if (patch.hunks.length === 0) {
+    return ["", false];
+  }
 
-  const tabCount = maxLineLength + 4;
-
-  let hasDiff = false;
-  const diff: string[] = [`expected${" ".repeat(tabCount - 8)}actual`];
-
-  for (let i = 0; i < maxLength; i++) {
-    const expectedLine = expectedLines[i] || "";
-    const actualLine = actualLines[i] || "";
-
-    const padding = " ".repeat(tabCount - expectedLine.length);
-    if (expectedLine === actualLine) {
-      diff.push(`${expectedLine}${padding}${actualLine}`);
-    } else {
-      hasDiff = true;
-      diff.push(
-        `${chalk.red(expectedLine)}${padding}${chalk.green(actualLine)}`,
-      );
+  const diff: string[] = ["diff expected actual"];
+  for (const hunk of patch.hunks) {
+    diff.push("--- expected");
+    diff.push("+++ actual");
+    diff.push(
+      chalk.blue(
+        `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines}`,
+      ),
+    );
+    for (const line of hunk.lines) {
+      if (line.startsWith("+")) {
+        diff.push(chalk.green(line));
+      } else if (line.startsWith("-")) {
+        diff.push(chalk.red(line));
+      } else {
+        diff.push(line);
+      }
     }
   }
 
-  return [diff.join("\n"), hasDiff];
+  return [diff.join("\n"), true];
 }
 
 async function runSuite(
@@ -110,6 +114,11 @@ async function runSuite(
   await buildImage(serverImpl, "server");
   const network = await setupNetwork();
 
+  const suiteStart = new Date();
+  const suite = builder
+    .testSuite()
+    .name(`river-babel (${clientImpl}, ${serverImpl})`);
+
   console.log("\n" + chalk.black.bgYellow(" TESTS "));
   let numTests = 0;
   let testsFailed = [];
@@ -117,14 +126,17 @@ async function runSuite(
 
   for (const [name, test] of Object.entries(tests)) {
     if (nameFilter && !name.includes(nameFilter)) {
+      suite.testCase().name(name).skipped();
       continue;
     }
 
     if (ignore.includes(test)) {
+      suite.testCase().name(name).skipped();
       console.log(chalk.yellow(`[${name}] skipped`));
       continue;
     }
 
+    const testStart = new Date();
     console.log(chalk.yellow(`[${name}] setup`));
     const testId = randomBytes(8).toString("hex");
     const serverContainer = await setupContainer(
@@ -179,6 +191,7 @@ async function runSuite(
 
     // for each client diff actual output with expected output
     let testFailed = false;
+    const diffs = [];
     for (const [clientName, client] of Object.entries(containers)) {
       const expectedOutput = client.expectedOutput
         .map(serializeExpectedOutputEntry)
@@ -188,20 +201,26 @@ async function runSuite(
 
       if (hasDiff) {
         testFailed = true;
+        diffs.push(`[${name}] ${clientName}\n` + diff);
         if (test.flaky) {
           console.log(
-            chalk.red(`[${name}] ${clientName} `) +
+            "::group::" +
+              chalk.red(`[${name}] ${clientName} `) +
               chalk.black.bgMagenta(` FLAKE `),
           );
         } else {
           console.log(
-            chalk.red(`[${name}] ${clientName} `) + chalk.black.bgRed(` FAIL `),
+            "::group::" +
+              chalk.red(`[${name}] ${clientName} `) +
+              chalk.black.bgRed(` FAIL `),
           );
         }
         console.log(diff + "\n");
 
-        console.log(chalk.yellow(`[${name}] ${clientName} logs`));
+        console.log("::group::" + chalk.yellow(`[${name}] ${clientName} logs`));
         console.log(await client.stderr);
+        console.log("::endgroup::");
+        console.log("::endgroup::");
       } else {
         console.log(
           chalk.green(`[${name}] ${clientName} `) +
@@ -211,13 +230,33 @@ async function runSuite(
     }
 
     if (testFailed) {
-      console.log(chalk.yellow(`[${name}] server logs`));
+      console.log("::group::" + chalk.yellow(`[${name}] server logs`));
       console.log(await serverContainer.stderr);
+      console.log("::endgroup::");
+
       if (test.flaky) {
+        // This test is marked as passing, but still add the output.
+        suite
+          .testCase()
+          .name(name)
+          .time((new Date().getTime() - suiteStart.getTime()) / 1000)
+          .standardError(diffs.join("\n"));
         testsFlaked.push(name);
       } else {
+        const testCase = suite
+          .testCase()
+          .name(name)
+          .time((new Date().getTime() - suiteStart.getTime()) / 1000);
+        for (const diff of diffs) {
+          testCase.failure(diff);
+        }
         testsFailed.push(name);
       }
+    } else {
+      suite
+        .testCase()
+        .name(name)
+        .time((new Date().getTime() - suiteStart.getTime()) / 1000);
     }
 
     numTests++;
@@ -238,6 +277,11 @@ async function runSuite(
     console.log(chalk.red(`failed:`));
     testsFailed.forEach((name) => console.log(chalk.red(`- ${name}`)));
   }
+
+  suite.time((new Date().getTime() - suiteStart.getTime()) / 1000);
+
+  await mkdir("tests/results", { recursive: true });
+  builder.writeTo(`tests/results/${clientImpl}-${serverImpl}.xml`);
 
   return testsFailed.length;
 }

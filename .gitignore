@@ -184,3 +184,6 @@ schema.json
 
 # Nix
 /.direnv/
+
+# test results
+/tests/results/
