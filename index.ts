@@ -259,9 +259,36 @@ async function runSuite(
       }),
     ]);
 
-    // wait a little bit to finish processing
+    // wait up to 5s for all the responses to arrive
     console.log(chalk.yellow(`[${name}] cleanup`));
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const now = new Date();
+    const waitForAllEvents = async (container: ClientContainer) => {
+      if (!container.expectedOutput || container.expectedOutput.length === 0) {
+        return;
+      }
+      for await (const count of container.responseCount) {
+        if (count >= container.expectedOutput.length) {
+          return;
+        }
+      }
+    };
+    let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
+    await Promise.race([
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(() => {
+          console.log(chalk.red(`didn't get full output for ${name}`));
+          resolve();
+        }, 5000);
+      }),
+      Promise.all(
+        Object.values(containers).map((container) =>
+          waitForAllEvents(container),
+        ),
+      ),
+    ]);
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
     await Promise.all(
       Object.values(containers).map(async (client) => await client.cleanup()),
     );
