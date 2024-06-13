@@ -148,5 +148,9 @@ export type Test = {
   server?: {
     serverActions: ServerAction[];
   };
+  // Flaky means that failing a test case won't mark the test suite as failed.
   flaky?: boolean;
+  // Unordered means that prior to diffing the output, it will be sorted lexicographically.
+  // Useful for tests that have inherent racy output.
+  unordered?: boolean;
 };
