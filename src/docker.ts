@@ -29,6 +29,7 @@ export interface ContainerHandle {
   container: Container;
   cleanup: () => Promise<unknown>;
   syncBarriers: Record<string, () => Promise<void>>;
+  responseCount: Pushable<number>;
   responses: Pushable<{ id: string; status: "ok" | "err"; payload: string }>;
   stdin: NodeJS.WritableStream;
   stdout: Promise<string>;
@@ -166,6 +167,7 @@ async function containerStreams(container: Container) {
 function stdoutStreamToString(
   stream: NodeJS.WritableStream,
   responses: Pushable<{ id: string; status: "ok" | "err"; payload: string }>,
+  responseCount: Pushable<number>,
 ): Promise<string> {
   const lineStream = stream.pipe(split2());
   const lines: string[] = [];
@@ -181,6 +183,7 @@ function stdoutStreamToString(
         });
       }
       lines.push(line);
+      responseCount.push(lines.length);
     });
     lineStream.on("error", (err) => reject(err));
     lineStream.on("end", () => resolve(lines.join("\n")));
@@ -295,16 +298,19 @@ export async function setupContainer(
     status: "ok" | "err";
     payload: string;
   }> = pushable({ objectMode: true });
+  const responseCount: Pushable<number> = pushable({ objectMode: true });
   return {
     name: containerName,
     container,
     responses,
+    responseCount,
     stdin,
-    stdout: stdoutStreamToString(stdout, responses),
+    stdout: stdoutStreamToString(stdout, responses, responseCount),
     stderr: stderrStreamToString(stderr),
     cleanup: async () => {
       await removeContainerIfExists();
       responses.end();
+      responseCount.end();
     },
     syncBarriers: {},
   };
@@ -433,7 +439,11 @@ async function applyActionCommon(
     containerHandle.stdin = stdin;
     containerHandle.stdout = Promise.all([
       containerHandle.stdout,
-      stdoutStreamToString(stdout, containerHandle.responses),
+      stdoutStreamToString(
+        stdout,
+        containerHandle.responses,
+        containerHandle.responseCount,
+      ),
     ]).then((outs) => outs.join(""));
     containerHandle.stderr = Promise.all([
       containerHandle.stderr,
