@@ -25,7 +25,7 @@ dependencies:
     version: 4.0.2
   isomorphic-ws:
     specifier: ^5.0.0
-    version: 5.0.0(ws@8.16.0)
+    version: 5.0.0(ws@8.17.1)
   it-pushable:
     specifier: ^3.2.3
     version: 3.2.3
@@ -45,8 +45,8 @@ dependencies:
     specifier: ^4.7.2
     version: 4.7.2
   ws:
-    specifier: ^8.16.0
-    version: 8.16.0
+    specifier: ^8.17.1
+    version: 8.17.1
   xunit-viewer:
     specifier: ^10.6.1
     version: 10.6.1(@babel/runtime@7.24.7)(@codemirror/autocomplete@6.16.2)(@codemirror/language@6.10.2)(@codemirror/lint@6.8.0)(@codemirror/search@6.5.6)(@codemirror/state@6.4.1)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.28.0)(codemirror@6.0.1)(react-dom@18.3.1)(react@18.3.1)
@@ -412,7 +412,7 @@ packages:
       '@sinclair/typebox': 0.32.20
       it-pushable: 3.2.3
       nanoid: 4.0.2
-      ws: 8.17.0
+      ws: 8.17.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -1249,12 +1249,12 @@ packages:
     engines: {node: '>=0.12.0'}
     dev: false
 
-  /isomorphic-ws@5.0.0(ws@8.16.0):
+  /isomorphic-ws@5.0.0(ws@8.17.1):
     resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
     peerDependencies:
       ws: '*'
     dependencies:
-      ws: 8.16.0
+      ws: 8.17.1
     dev: false
 
   /it-pushable@3.2.3:
@@ -1905,21 +1905,8 @@ packages:
         optional: true
     dev: false
 
-  /ws@8.16.0:
-    resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-    dev: false
-
-  /ws@8.17.0:
-    resolution: {integrity: sha512-uJq6108EgZMAl20KagGkzCKfMEjxmKvZHG7Tlq0Z6nOky7YF7aq4mOx6xK8TJ/i1LeK4Qus7INktacctDgY8Ow==}
+  /ws@8.17.1:
+    resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
