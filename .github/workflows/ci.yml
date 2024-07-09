@@ -33,15 +33,15 @@ jobs:
             ${{ runner.os }}-node-
 
       - run: npm ci
-
+      - run: npm run tsc
       - run: npm run format:check
 
   build-and-test:
     strategy:
       fail-fast: false
       matrix:
-        client: ["bun", "node", "python"]
-        server: ["bun", "node", "python"]
+        client: ['bun', 'node', 'python']
+        server: ['bun', 'node', 'python']
     runs-on: ubuntu-latest
     permissions:
       contents: write
