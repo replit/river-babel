@@ -3,13 +3,14 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dump": "bun dumpSchema.ts",
+    "dump": "tsx dumpSchema.ts",
     "start": "tsx index.ts",
+    "tsc": "tsc --noEmit",
     "format": "prettier -w '**/*.{js,ts}'",
     "format:check": "prettier --check '**/*.{js,ts}'"
   },
   "dependencies": {
-    "@replit/river": "^0.23.9",
+    "@replit/river": "^0.24.1",
     "@sinclair/typebox": "^0.32.20",
     "chalk": "^5.3.0",
     "diff": "^5.2.0",
@@ -30,11 +31,15 @@
     "@types/diff": "^5.0.9",
     "@types/docker-modem": "^3.0.6",
     "@types/dockerode": "^3.3.28",
+    "@types/junit-report-builder": "^3.0.2",
     "@types/node": "^20.11.30",
     "@types/split2": "^4.2.3",
     "@types/ws": "^8.5.10",
     "@types/yargs": "^17.0.32",
     "prettier": "^3.2.5",
     "typescript": "^5.4.3"
+  },
+  "prettier": {
+    "singleQuote": true
   }
 }
