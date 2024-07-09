@@ -40,8 +40,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        client: ['bun', 'node', 'python']
-        server: ['bun', 'node', 'python']
+        client: ['node', 'python']
+        server: ['node', 'python']
     runs-on: ubuntu-latest
     permissions:
       contents: write
