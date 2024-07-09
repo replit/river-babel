@@ -1,5 +1,5 @@
-import { ServiceSchema, Ok, Procedure, Err } from "@replit/river";
-import { Type } from "@sinclair/typebox";
+import { ServiceSchema, Ok, Procedure, Err } from '@replit/river';
+import { Type } from '@sinclair/typebox';
 
 export class Observable<T> {
   value: T;
@@ -51,7 +51,7 @@ const KVService = ServiceSchema.define(
       input: Type.Object({ k: Type.String() }),
       output: Type.Object({ v: Type.Number() }),
       errors: Type.Object({
-        code: Type.Literal("NOT_FOUND"),
+        code: Type.Literal('NOT_FOUND'),
         message: Type.String(),
       }),
       async handler(ctx, { k }, out) {
@@ -59,7 +59,7 @@ const KVService = ServiceSchema.define(
         if (!observable) {
           out.push(
             Err({
-              code: "NOT_FOUND",
+              code: 'NOT_FOUND',
               message: `key ${k} wasn't found`,
             }),
           );
@@ -100,14 +100,14 @@ const EchoService = ServiceSchema.define({
 const UploadService = ServiceSchema.define({
   send: Procedure.upload({
     input: Type.Object({
-      part: Type.Union([Type.String(), Type.Literal("EOF")]),
+      part: Type.Union([Type.String(), Type.Literal('EOF')]),
     }),
     output: Type.Object({ doc: Type.String() }),
     errors: Type.Never(),
     async handler(_ctx, input) {
-      let doc = "";
+      let doc = '';
       for await (const { part } of input) {
-        if (part === "EOF") {
+        if (part === 'EOF') {
           break;
         }
 

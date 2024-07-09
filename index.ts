@@ -114,7 +114,10 @@ function constructDiffString(
   return [diff.join('\n'), true];
 }
 
-async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<number> {
+async function runSuite(
+  tests: Record<string, Test>,
+  ignore: Test[],
+): Promise<number> {
   // setup
   console.log('::group::Setup');
   await buildImage(clientImpl, 'client');
@@ -123,7 +126,9 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
   console.log('::endgroup::');
 
   const suiteStart = new Date();
-  const suite = builder.testSuite().name(`river-babel (${clientImpl}, ${serverImpl})`);
+  const suite = builder
+    .testSuite()
+    .name(`river-babel (${clientImpl}, ${serverImpl})`);
 
   console.log('\n' + chalk.black.bgYellow(' TESTS '));
   let numTests = 0;
@@ -302,7 +307,8 @@ async function runSuite(tests: Record<string, Test>, ignore: Test[]): Promise<nu
         console.log('::endgroup::');
       } else {
         console.log(
-          chalk.green(`[${name}] ${clientName} `) + chalk.black.bgGreen(` PASS `),
+          chalk.green(`[${name}] ${clientName} `) +
+            chalk.black.bgGreen(` PASS `),
         );
       }
     }

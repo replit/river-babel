@@ -407,7 +407,9 @@ async function applyActionCommon(
       const timeoutMs = action.timeout ?? 5000;
       timeoutId = setTimeout(() => {
         console.error(
-          chalk.red(`sync: timeout waiting for ${action.label} after ${timeoutMs}ms`),
+          chalk.red(
+            `sync: timeout waiting for ${action.label} after ${timeoutMs}ms`,
+          ),
         );
         resolve(true);
       }, timeoutMs);
@@ -425,7 +427,9 @@ async function applyActionCommon(
     await containerHandle.container.stop({ t: 0 });
     await containerHandle.container.start();
 
-    const [stdin, stdout, stderr] = await containerStreams(containerHandle.container);
+    const [stdin, stdout, stderr] = await containerStreams(
+      containerHandle.container,
+    );
     containerHandle.stdin = stdin;
     containerHandle.stdout = Promise.all([
       containerHandle.stdout,

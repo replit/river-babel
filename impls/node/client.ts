@@ -42,10 +42,14 @@ clientTransport.bindLogger(
   'debug',
 );
 
-const client = createClient<typeof serviceDefs>(clientTransport, SERVER_TRANSPORT_ID, {
-  connectOnInvoke: true,
-  eagerlyConnect: true,
-});
+const client = createClient<typeof serviceDefs>(
+  clientTransport,
+  SERVER_TRANSPORT_ID,
+  {
+    connectOnInvoke: true,
+    eagerlyConnect: true,
+  },
+);
 
 // listen for jepsen driver commands
 const rl = readline.createInterface({
@@ -56,7 +60,9 @@ const rl = readline.createInterface({
 
 const handles = new Map<string, Pushable<unknown>>();
 for await (const line of rl) {
-  const match = line.match(/(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/);
+  const match = line.match(
+    /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
+  );
   if (!match || !match.groups) {
     console.error('FATAL: invalid command', line);
     process.exit(1);

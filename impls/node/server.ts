@@ -1,10 +1,10 @@
-import http from "http";
-import { WebSocketServer } from "ws";
-import { WebSocketServerTransport } from "@replit/river/transport/ws/server";
-import { createServer } from "@replit/river";
-import type { TransportOptions } from "@replit/river/transport";
-import { BinaryCodec } from "@replit/river/codec";
-import { serviceDefs } from "./serviceDefs";
+import http from 'http';
+import { WebSocketServer } from 'ws';
+import { WebSocketServerTransport } from '@replit/river/transport/ws/server';
+import { createServer } from '@replit/river';
+import type { TransportOptions } from '@replit/river/transport';
+import { BinaryCodec } from '@replit/river/codec';
+import { serviceDefs } from './serviceDefs';
 
 const {
   PORT,
@@ -21,12 +21,12 @@ const transportOptions: Partial<TransportOptions> = {
 };
 
 const httpServer = http.createServer((req, res) => {
-  if (req.url === "/healthz") {
-    res.end("OK");
+  if (req.url === '/healthz') {
+    res.end('OK');
     return;
   }
   res.statusCode = 426;
-  res.end("Upgrade required");
+  res.end('Upgrade required');
 });
 const wss = new WebSocketServer({ server: httpServer });
 const transport = new WebSocketServerTransport(
@@ -37,7 +37,7 @@ const transport = new WebSocketServerTransport(
 transport.bindLogger(
   (msg, ctx, level) =>
     process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`),
-  "debug",
+  'debug',
 );
 export const server = createServer(transport, serviceDefs);
 export type ServiceSurface = typeof server;

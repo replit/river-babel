@@ -1,38 +1,38 @@
 // driver actions for each container
 export type CommonAction =
   | {
-      type: "sync";
+      type: 'sync';
       label: string;
       timeout?: number;
     }
   | {
-      type: "sleep";
+      type: 'sleep';
       ms: number;
     }
   | {
-      type: "restart_container";
+      type: 'restart_container';
     }
   | {
-      type: "connect_network";
+      type: 'connect_network';
     }
   | {
-      type: "disconnect_network";
+      type: 'disconnect_network';
     }
   | {
-      type: "pause_container";
+      type: 'pause_container';
     }
   | {
-      type: "unpause_container";
+      type: 'unpause_container';
     };
 
 export type ClientAction =
   | CommonAction
   | InvokeAction
   | {
-      type: "wait_response";
+      type: 'wait_response';
       id: string;
       // If status/payload are set, only match the message if the payload of the response matches them.
-      status?: "ok" | "err";
+      status?: 'ok' | 'err';
       payload?: string;
       timeout?: number;
     };
@@ -41,83 +41,83 @@ export type ServerAction = CommonAction;
 
 export type InvokeAction =
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // rpc
-      proc: "kv.set";
+      proc: 'kv.set';
       payload: { k: string; v: number };
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // subscription
-      proc: "kv.watch";
+      proc: 'kv.watch';
       payload: { k: string };
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // stream init
-      proc: "repeat.echo";
+      proc: 'repeat.echo';
       init: {};
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // stream payload
-      proc: "repeat.echo";
+      proc: 'repeat.echo';
       payload: { s: string };
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // stream init
-      proc: "repeat.echo_prefix";
+      proc: 'repeat.echo_prefix';
       init: { prefix: string };
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // stream payload
-      proc: "repeat.echo_prefix";
+      proc: 'repeat.echo_prefix';
       payload: { str: string };
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // upload init
-      proc: "upload.send";
+      proc: 'upload.send';
       init: {};
     }
   | {
-      type: "invoke";
+      type: 'invoke';
       id: string;
       // upload payload
-      proc: "upload.send";
+      proc: 'upload.send';
       payload: { part: string };
     };
 
 export function serializeInvokeAction(action: InvokeAction) {
-  let payload: string = "";
-  if (action.proc === "kv.set") {
+  let payload: string = '';
+  if (action.proc === 'kv.set') {
     payload = `${action.payload.k} ${action.payload.v}`;
-  } else if (action.proc === "kv.watch") {
+  } else if (action.proc === 'kv.watch') {
     payload = action.payload.k;
-  } else if (action.proc === "repeat.echo") {
-    if ("init" in action) {
-      payload = "";
+  } else if (action.proc === 'repeat.echo') {
+    if ('init' in action) {
+      payload = '';
     } else {
       payload = action.payload.s;
     }
-  } else if (action.proc === "repeat.echo_prefix") {
-    if ("init" in action) {
+  } else if (action.proc === 'repeat.echo_prefix') {
+    if ('init' in action) {
       payload = action.init.prefix;
     } else {
       payload = action.payload.str;
     }
-  } else if (action.proc === "upload.send") {
-    if ("init" in action) {
-      payload = "";
+  } else if (action.proc === 'upload.send') {
+    if ('init' in action) {
+      payload = '';
     } else {
       payload = action.payload.part;
     }
@@ -129,7 +129,7 @@ export function serializeInvokeAction(action: InvokeAction) {
 
 export type ExpectedOutputEntry = {
   id: string;
-  status: "ok" | "err";
+  status: 'ok' | 'err';
   payload: unknown;
 };
 

@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dump": "bun dumpSchema.ts",
+    "dump": "tsx dumpSchema.ts",
     "start": "tsx index.ts",
     "tsc": "tsc --noEmit",
     "format": "prettier -w '**/*.{js,ts}'",
@@ -38,5 +38,8 @@
     "@types/yargs": "^17.0.32",
     "prettier": "^3.2.5",
     "typescript": "^5.4.3"
+  },
+  "prettier": {
+    "singleQuote": true
   }
 }
