@@ -1,11 +1,11 @@
-import { WebSocket } from "ws";
-import { WebSocketClientTransport } from "@replit/river/transport/ws/client";
-import readline from "node:readline";
-import { createClient, type Server } from "@replit/river";
-import type { TransportOptions } from "@replit/river/transport";
-import { BinaryCodec } from "@replit/river/codec";
-import type { serviceDefs } from "./serviceDefs";
-import type { Pushable } from "it-pushable";
+import { WebSocket } from 'ws';
+import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
+import readline from 'node:readline';
+import { createClient, type Server } from '@replit/river';
+import type { TransportOptions } from '@replit/river/transport';
+import { BinaryCodec } from '@replit/river/codec';
+import type { serviceDefs } from './serviceDefs';
+import type { Pushable } from 'it-pushable';
 
 const {
   PORT,
@@ -25,10 +25,10 @@ const transportOptions: Partial<TransportOptions> = {
 
 const clientTransport = new WebSocketClientTransport(
   () =>
-    (async (): Promise<WsLike> => {
+    (async (): Promise<WebSocket> => {
       const ws = new WebSocket(`ws://${RIVER_SERVER}:${PORT}`);
       // Explicitly set an error handler to avoid unhandled exceptions.
-      ws.on("error", (err) => {
+      ws.on('error', (err) => {
         console.error(err);
       });
       return ws;
@@ -39,17 +39,13 @@ const clientTransport = new WebSocketClientTransport(
 clientTransport.bindLogger(
   (msg, ctx, level) =>
     process.stderr.write(`[${level}]: ${msg}: ${JSON.stringify(ctx)}\n`),
-  "debug",
+  'debug',
 );
 
-const client = createClient<Server<typeof serviceDefs>>(
-  clientTransport,
-  SERVER_TRANSPORT_ID,
-  {
-    connectOnInvoke: true,
-    eagerlyConnect: true,
-  },
-);
+const client = createClient<typeof serviceDefs>(clientTransport, SERVER_TRANSPORT_ID, {
+  connectOnInvoke: true,
+  eagerlyConnect: true,
+});
 
 // listen for jepsen driver commands
 const rl = readline.createInterface({
@@ -60,25 +56,23 @@ const rl = readline.createInterface({
 
 const handles = new Map<string, Pushable<unknown>>();
 for await (const line of rl) {
-  const match = line.match(
-    /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
-  );
+  const match = line.match(/(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/);
   if (!match || !match.groups) {
-    console.error("FATAL: invalid command", line);
+    console.error('FATAL: invalid command', line);
     process.exit(1);
   }
 
   const { id, svc, proc, payload } = match.groups;
-  if (svc === "kv") {
-    if (proc === "set") {
-      const [k, v] = payload.split(" ");
+  if (svc === 'kv') {
+    if (proc === 'set') {
+      const [k, v] = payload.split(' ');
       const res = await client.kv.set.rpc({ k, v: parseInt(v) });
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
       } else {
         console.log(`${id} -- err:${res.payload.code}`);
       }
-    } else if (proc === "watch") {
+    } else if (proc === 'watch') {
       const [res] = await client.kv.watch.subscribe({ k: payload });
       (async () => {
         for await (const v of res) {
@@ -90,8 +84,8 @@ for await (const line of rl) {
         }
       })();
     }
-  } else if (svc === "repeat") {
-    if (proc === "echo") {
+  } else if (svc === 'repeat') {
+    if (proc === 'echo') {
       if (!handles.has(id)) {
         const [input, output] = await client.repeat.echo.stream();
         (async () => {
@@ -108,7 +102,7 @@ for await (const line of rl) {
       } else {
         handles.get(id)!.push({ str: payload });
       }
-    } else if (proc === "echo_prefix") {
+    } else if (proc === 'echo_prefix') {
       if (!handles.has(id)) {
         const [input, output] = await client.repeat.echo_prefix.stream({
           prefix: payload,
@@ -128,8 +122,8 @@ for await (const line of rl) {
         handles.get(id)!.push({ str: payload });
       }
     }
-  } else if (svc === "upload") {
-    if (proc === "send") {
+  } else if (svc === 'upload') {
+    if (proc === 'send') {
       if (!handles.has(id)) {
         const [input, res] = await client.upload.send.upload();
         handles.set(id, input);
