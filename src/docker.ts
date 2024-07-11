@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import split2 from 'split2';
 import { pushable, type Pushable } from 'it-pushable';
 import { exec } from 'child_process';
-import Docker, { type Container } from 'dockerode';
+import Docker, { type Network, type Container } from 'dockerode';
 import DockerModem from 'docker-modem';
 import logUpdate from 'log-update';
 import { PassThrough } from 'stream';
@@ -124,28 +124,57 @@ export async function buildImage(impl: string, type: 'client' | 'server') {
   console.log(chalk.green(`${type} image built\n`));
 }
 
-// create networks
-const NETWORK_NAME = 'river-babel';
-export async function setupNetwork() {
-  const networks = await docker.listNetworks({
-    filters: { name: [NETWORK_NAME] },
+const NETWORK_NAME_PREFIX = 'river-babel';
+export async function setupNetworks(parallel: number) {
+  const foundNetworks = await docker.listNetworks({
+    filters: { name: [NETWORK_NAME_PREFIX] },
   });
-  let networkInfo = networks.find((n) => n.Name === NETWORK_NAME);
-  let network = networkInfo ? docker.getNetwork(networkInfo?.Id) : undefined;
-  if (!network) {
-    console.log(chalk.blue('creating docker network'));
-    network = await docker.createNetwork({
-      Name: NETWORK_NAME,
+
+  const networkNames = Array.from(
+    { length: parallel },
+    (_, i) => `${NETWORK_NAME_PREFIX}-${i + 1}`,
+  );
+
+  const networkInfos = foundNetworks.filter((n) =>
+    networkNames.includes(n.Name),
+  );
+
+  const networksToCreate = networkNames.filter(
+    (name) => !networkInfos.find((n) => n.Name === name),
+  );
+
+  for (const name of networksToCreate) {
+    console.log(chalk.blue(`creating network ${name}`));
+    await docker.createNetwork({
+      Name: name,
       Attachable: true,
     });
     cleanupFns.push(async () => {
-      console.log(chalk.blue('cleanup: removing docker network'));
-      await docker.getNetwork(NETWORK_NAME).remove();
+      console.log(chalk.blue(`cleanup: removing network ${name}`));
+      await docker.getNetwork(name).remove();
     });
   }
 
   console.log(chalk.green('network ok'));
-  return network;
+
+  const availableNetworks = new Set(
+    networkNames.map((name) => docker.getNetwork(name)),
+  );
+
+  return {
+    acquire: () => {
+      const network = availableNetworks.values().next().value;
+      if (!network) {
+        throw new Error('no available networks');
+      }
+
+      availableNetworks.delete(network);
+      return network;
+    },
+    release: (network: Docker.Network) => {
+      availableNetworks.add(network);
+    },
+  };
 }
 
 async function containerStreams(container: Container) {
@@ -201,13 +230,13 @@ export async function setupContainer(
   clientImpl: string,
   serverImpl: string,
   type: 'client' | 'server',
-  nameOverride?: string,
+  name: string,
+  network: Docker.Network,
+  log: (msg: string) => void,
 ): Promise<ContainerHandle> {
   const impl = type === 'client' ? clientImpl : serverImpl;
   const imageName = `river-babel-${impl}-${type}`;
-  const containerName = nameOverride
-    ? `river-${nameOverride}-${testId}`
-    : `river-${type}-${testId}`;
+  const containerName = `river-${name}-${testId}`;
   const getContainerId = async () => {
     const containers = await docker.listContainers({
       all: true,
@@ -219,12 +248,12 @@ export async function setupContainer(
   let container: Docker.Container;
   let containerId = await getContainerId();
   if (containerId) {
-    console.log(chalk.yellow(`cleaning up old ${type} container`));
+    log(chalk.yellow(`cleaning up old ${type} container`));
     const oldContainer = docker.getContainer(containerId);
     await oldContainer.remove({ force: true });
   }
 
-  console.log(chalk.blue(`creating ${type} container`));
+  log(chalk.blue(`creating ${type} container`));
   container = await docker.createContainer({
     Image: imageName,
     name: containerName,
@@ -232,7 +261,7 @@ export async function setupContainer(
       '8080/tcp': {},
     },
     HostConfig: {
-      NetworkMode: NETWORK_NAME,
+      NetworkMode: network.id,
       AutoRemove: false,
     },
     AttachStdin: true,
@@ -242,9 +271,7 @@ export async function setupContainer(
     Env: [
       'PORT=8080',
       `RIVER_SERVER=river-server-${testId}`,
-      nameOverride
-        ? `CLIENT_TRANSPORT_ID=${impl}-${nameOverride}-${testId}`
-        : `CLIENT_TRANSPORT_ID=${impl}-${type}-${testId}`,
+      `CLIENT_TRANSPORT_ID=${impl}-${name}-${testId}`,
       `SERVER_TRANSPORT_ID=${serverImpl}-server`,
       `HEARTBEAT_MS=${HEARTBEAT_MS}`,
       `HEARTBEATS_UNTIL_DEAD=${HEARTBEATS_UNTIL_DEAD}`,
@@ -260,7 +287,7 @@ export async function setupContainer(
   const removeContainerIfExists = async () => {
     stdout.end();
     stderr.end();
-    console.log(chalk.blue(`cleanup: removing ${type} container`));
+    log(chalk.blue(`cleanup: removing ${type} container`));
     try {
       const c = docker.getContainer(containerId);
       try {
@@ -288,7 +315,7 @@ export async function setupContainer(
 
   // warm up the container. wait 10s until we get at least one good result back.
   if (type === 'server') {
-    healthCheck(container);
+    healthCheck(container, network);
   }
   const responses: Pushable<{
     id: string;
@@ -310,9 +337,9 @@ export async function setupContainer(
   };
 }
 
-async function healthCheck(container: Container) {
+async function healthCheck(container: Container, network: Network) {
   const { NetworkSettings: networkSettings } = await container.inspect();
-  const address = `http://${networkSettings.Networks[NETWORK_NAME].IPAddress}:8080/healthz`;
+  const address = `http://${networkSettings.Networks[network.id].IPAddress}:8080/healthz`;
   for (let remaining = 100; remaining >= 0; remaining--) {
     try {
       // We just need for the fetch to give us something that looks like HTTP back.
@@ -332,6 +359,7 @@ export async function applyActionClient(
   network: Docker.Network,
   containerHandle: ContainerHandle,
   action: ClientAction,
+  log: (msg: string) => void,
 ) {
   if (action.type === 'wait_response') {
     let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -341,7 +369,7 @@ export async function applyActionClient(
     }> = new Promise((accept) => {
       const timeoutMs = action.timeout ?? 5000;
       timeoutId = setTimeout(() => {
-        console.error(
+        log(
           chalk.red(
             `wait_response: timeout waiting for ${action.id} after ${timeoutMs}ms`,
           ),
@@ -360,7 +388,7 @@ export async function applyActionClient(
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
-        console.error(chalk.red(`wait_response: never saw id ${action.id}`));
+        log(chalk.red(`wait_response: never saw id ${action.id}`));
         return;
       } else if (
         response &&
@@ -379,17 +407,18 @@ export async function applyActionClient(
     return;
   }
 
-  await applyActionCommon(network, containerHandle, action);
+  await applyActionCommon(network, containerHandle, action, log);
 }
 
 export async function applyActionServer(
   network: Docker.Network,
   containerHandle: ContainerHandle,
   action: ServerAction,
+  log: (msg: string) => void,
 ) {
-  await applyActionCommon(network, containerHandle, action);
+  await applyActionCommon(network, containerHandle, action, log);
   if (action.type == 'restart_container') {
-    healthCheck(containerHandle.container);
+    healthCheck(containerHandle.container, network);
   }
 }
 
@@ -397,6 +426,7 @@ async function applyActionCommon(
   network: Docker.Network,
   containerHandle: ContainerHandle,
   action: CommonAction,
+  log: (msg: string) => void,
 ) {
   if (action.type === 'sync') {
     if (!(action.label in containerHandle.syncBarriers)) {
@@ -406,7 +436,7 @@ async function applyActionCommon(
     const timeoutPromise: Promise<true> = new Promise((resolve) => {
       const timeoutMs = action.timeout ?? 5000;
       timeoutId = setTimeout(() => {
-        console.error(
+        log(
           chalk.red(
             `sync: timeout waiting for ${action.label} after ${timeoutMs}ms`,
           ),

@@ -10,6 +10,7 @@
     "format:check": "prettier --check '**/*.{js,ts}'"
   },
   "dependencies": {
+    "@listr2/manager": "^2.0.10",
     "@replit/river": "^0.24.1",
     "@sinclair/typebox": "^0.32.20",
     "chalk": "^5.3.0",
@@ -19,9 +20,11 @@
     "isomorphic-ws": "^5.0.0",
     "it-pushable": "^3.2.3",
     "junit-report-builder": "^3.2.1",
+    "listr2": "^8.2.3",
     "log-update": "^6.0.0",
     "nanoid": "^5.0.6",
     "split2": "^4.2.0",
+    "strip-ansi": "^7.1.0",
     "tsx": "^4.7.2",
     "ws": "^8.16.0",
     "xunit-viewer": "^10.6.1",
