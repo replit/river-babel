@@ -83,5 +83,5 @@ jobs:
         if: failure()
         with:
           name: logs-${{ matrix.client }}-${{ matrix.server }}
-          path: logs/
+          path: logs/${{ matrix.client }}-${{ matrix.server }}/
           if-no-files-found: warn
