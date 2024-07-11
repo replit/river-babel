@@ -25,7 +25,7 @@ const KvRpcTest: Test = {
         },
       ],
       expectedOutput: [
-        { id: '1', status: 'ok', payload: 42 },
+        { id: '1', status: 'ok', payload: 422 },
         { id: '2', status: 'ok', payload: 43 },
         { id: '3', status: 'ok', payload: 1 },
       ],
