@@ -37,6 +37,7 @@ const {
   server: serverImpl,
   name: nameFilters,
   parallel,
+  bail,
 } = yargs(hideBin(process.argv))
   .options({
     client: {
@@ -57,6 +58,11 @@ const {
       type: 'number',
       default: 16,
       description: 'number of tests to run in parallel',
+    },
+    bail: {
+      type: 'boolean',
+      default: false,
+      description: 'stop running tests after the first failure',
     },
   })
   .parseSync();
@@ -390,7 +396,7 @@ end logs for ${clientName}
       removeEmptyLines: false,
       timer: PRESET_TIMER,
     },
-    exitOnError: false,
+    exitOnError: bail,
   });
   taskrunner.add(tasks);
   await taskrunner.runAll();
