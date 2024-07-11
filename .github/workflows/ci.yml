@@ -40,8 +40,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        client: ['node', 'python']
-        server: ['node', 'python']
+        client: ['node', 'python', 'node-protocolv2']
+        server: ['node', 'python', 'node-protocolv2']
     runs-on: ubuntu-latest
     permissions:
       contents: write
