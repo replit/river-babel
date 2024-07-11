@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { structuredPatch } from 'diff';
 import chalk from 'chalk';
+import stripAnsi from 'strip-ansi';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import builder from 'junit-report-builder';
@@ -13,7 +14,7 @@ import {
 import {
   buildImage,
   cleanup,
-  setupNetwork,
+  setupNetworks,
   applyActionClient,
   applyActionServer,
   setupContainer,
@@ -27,11 +28,15 @@ import DisconnectNotifsTests from './tests/disconnect_notifs';
 import VolumeTests from './tests/volume';
 import InterleavingTests from './tests/interleaving';
 import InstanceMismatchTests from './tests/instance_mismatch';
+import { PRESET_TIMER, type ListrTask } from 'listr2';
+import { Manager } from '@listr2/manager';
+import { constants, open } from 'fs/promises';
 
 const {
   client: clientImpl,
   server: serverImpl,
-  name: nameFilter,
+  name: nameFilters,
+  parallel,
 } = yargs(hideBin(process.argv))
   .options({
     client: {
@@ -43,8 +48,15 @@ const {
       demandOption: true,
     },
     name: {
-      type: 'string',
+      type: 'array',
+      string: true,
+      default: [] as Array<string>,
       description: 'only run tests that contain the specified string',
+    },
+    parallel: {
+      type: 'number',
+      default: 16,
+      description: 'number of tests to run in parallel',
     },
   })
   .parseSync();
@@ -91,7 +103,7 @@ function constructDiffString(
     return ['', false];
   }
 
-  const diff: string[] = ['diff expected actual'];
+  const diff: string[] = ['diff'];
   for (const hunk of patch.hunks) {
     diff.push('--- expected');
     diff.push('+++ actual');
@@ -118,256 +130,300 @@ async function runSuite(
   tests: Record<string, Test>,
   ignore: Test[],
 ): Promise<number> {
-  // setup
-  console.log('::group::Setup');
   await buildImage(clientImpl, 'client');
   await buildImage(serverImpl, 'server');
-  const network = await setupNetwork();
-  console.log('::endgroup::');
+  const networks = await setupNetworks(parallel);
 
   const suiteStart = new Date();
   const suite = builder
     .testSuite()
     .name(`river-babel (${clientImpl}, ${serverImpl})`);
 
-  console.log('\n' + chalk.black.bgYellow(' TESTS '));
+  console.log('Starting Tests');
+  console.log('Client:', clientImpl, 'Server:', serverImpl);
+  console.log(chalk.reset());
+
+  let testsFailed: Set<string> = new Set();
+  let testsFlaked: Set<string> = new Set();
+
+  const logsDir = `./logs/${Date.now()}/`;
+  await mkdir(logsDir, { recursive: true });
+
   let numTests = 0;
-  let testsFailed = [];
-  let testsFlaked = [];
+  const tasks = Object.entries(tests)
+    .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+    .map(
+      ([name, test]): ListrTask => ({
+        title: name,
+        rendererOptions: {
+          outputBar: Infinity,
+          persistentOutput: true,
+        },
+        skip: () => {
+          if (
+            (nameFilters.length &&
+              !nameFilters.some((filter) => name.includes(filter))) ||
+            ignore.includes(test)
+          ) {
+            suite.testCase().name(name).skipped();
+            return true;
+          }
 
-  for (const [name, test] of Object.entries(tests)) {
-    if (nameFilter && !name.includes(nameFilter)) {
-      suite.testCase().name(name).skipped();
-      continue;
-    }
+          numTests++;
+          return false;
+        },
+        task: async (_ctx, task) => {
+          const log = (msg: string) => {
+            if (task.task.isCompleted()) {
+              return;
+            }
 
-    if (ignore.includes(test)) {
-      suite.testCase().name(name).skipped();
-      console.log(chalk.yellow(`[${name}] skipped`));
-      continue;
-    }
+            task.output = msg;
+          };
 
-    const testStart = new Date();
-    console.log(chalk.yellow(`[${name}] setup`));
-    const testId = randomBytes(8).toString('hex');
-    const serverContainer = await setupContainer(
-      testId,
-      clientImpl,
-      serverImpl,
-      'server',
-    );
+          const network = networks.acquire();
 
-    let serverActions: ServerAction[] = test.server?.serverActions ?? [];
-    const containers: Record<string, ClientContainer> = {};
-    for (const [clientName, testEntry] of Object.entries(test.clients)) {
-      // client case
-      const { actions, expectedOutput } = testEntry;
-      const container = await setupContainer(
-        testId,
-        clientImpl,
-        serverImpl,
-        'client',
-        clientName,
-      );
-      containers[clientName] = {
-        ...container,
-        actions,
-        expectedOutput,
-      };
-    }
+          log('status: setup');
+          const testId = randomBytes(8).toString('hex');
+          const serverContainer = await setupContainer(
+            testId,
+            clientImpl,
+            serverImpl,
+            'server',
+            'server',
+            network,
+            log,
+          );
 
-    // build the map of syncpoints to promises.
-    const syncPromises: Record<
-      string,
-      Record<string, { promise: Promise<unknown>; resolve: () => unknown }>
-    > = {};
-    const processSyncAction = (name: string, label: string) => {
-      if (!(label in syncPromises)) {
-        syncPromises[label] = {};
-      }
-      let resolve: () => void = () => {};
-      const promise = new Promise<void>((_resolve) => {
-        resolve = _resolve;
-      });
-      syncPromises[label][name] = {
-        resolve,
-        promise,
-      };
-    };
-    for (const action of serverActions) {
-      if (action.type !== 'sync') continue;
-      processSyncAction('server', action.label);
-    }
-    for (const [clientName, client] of Object.entries(containers)) {
-      for (const action of client.actions) {
-        if (action.type !== 'sync') continue;
-        processSyncAction(clientName, action.label);
-      }
-    }
-    // build the barriers out of the sync promises.
-    const syncBarriers: Record<string, Promise<unknown>> = {};
-    for (const [label, promises] of Object.entries(syncPromises)) {
-      const promiseArray: Array<Promise<unknown>> = [];
-      for (const { promise } of Object.values(promises)) {
-        promiseArray.push(promise);
-      }
-      syncBarriers[label] = Promise.all(promiseArray);
-    }
-    // install the barriers in all containers.
-    for (const action of serverActions) {
-      if (action.type !== 'sync') continue;
-      if (
-        !(action.label in syncBarriers) ||
-        !(action.label in syncPromises) ||
-        !('server' in syncPromises[action.label])
-      ) {
-        throw new Error(`sync barrier ${action.label} not found`);
-      }
-      serverContainer.syncBarriers[action.label] = () => {
-        syncPromises[action.label]['server'].resolve();
-        return syncBarriers[action.label];
-      };
-    }
-    for (const [clientName, client] of Object.entries(containers)) {
-      for (const action of client.actions) {
-        if (action.type !== 'sync') continue;
-        if (
-          !(action.label in syncBarriers) ||
-          !(action.label in syncPromises) ||
-          !(clientName in syncPromises[action.label])
-        ) {
-          throw new Error(`sync barrier ${action.label} not found`);
-        }
-        client.syncBarriers[action.label] = () => {
-          syncPromises[action.label][clientName].resolve();
-          return syncBarriers[action.label];
-        };
-      }
-    }
+          let serverActions: ServerAction[] = test.server?.serverActions ?? [];
+          const containers: Record<string, ClientContainer> = {};
+          for (const [clientName, testEntry] of Object.entries(test.clients)) {
+            // client case
+            const { actions, expectedOutput } = testEntry;
+            const container = await setupContainer(
+              testId,
+              clientImpl,
+              serverImpl,
+              'client',
+              clientName,
+              network,
+              log,
+            );
+            containers[clientName] = {
+              ...container,
+              actions,
+              expectedOutput,
+            };
+          }
 
-    console.log(chalk.yellow(`[${name}] run`));
-    await Promise.all([
-      (async () => {
-        for (const action of serverActions) {
-          await applyActionServer(network, serverContainer, action);
-        }
-      })(),
-      ...Object.entries(containers).map(async ([_clientName, client]) => {
-        for (const action of client.actions) {
-          await applyActionClient(network, client, action);
-        }
+          // build the map of syncpoints to promises.
+          const syncPromises: Record<
+            string,
+            Record<
+              string,
+              { promise: Promise<unknown>; resolve: () => unknown }
+            >
+          > = {};
+          const processSyncAction = (name: string, label: string) => {
+            if (!(label in syncPromises)) {
+              syncPromises[label] = {};
+            }
+            let resolve: () => void = () => {};
+            const promise = new Promise<void>((_resolve) => {
+              resolve = _resolve;
+            });
+            syncPromises[label][name] = {
+              resolve,
+              promise,
+            };
+          };
+          for (const action of serverActions) {
+            if (action.type !== 'sync') continue;
+            processSyncAction('server', action.label);
+          }
+          for (const [clientName, client] of Object.entries(containers)) {
+            for (const action of client.actions) {
+              if (action.type !== 'sync') continue;
+              processSyncAction(clientName, action.label);
+            }
+          }
+          // build the barriers out of the sync promises.
+          const syncBarriers: Record<string, Promise<unknown>> = {};
+          for (const [label, promises] of Object.entries(syncPromises)) {
+            const promiseArray: Array<Promise<unknown>> = [];
+            for (const { promise } of Object.values(promises)) {
+              promiseArray.push(promise);
+            }
+            syncBarriers[label] = Promise.all(promiseArray);
+          }
+          // install the barriers in all containers.
+          for (const action of serverActions) {
+            if (action.type !== 'sync') continue;
+            if (
+              !(action.label in syncBarriers) ||
+              !(action.label in syncPromises) ||
+              !('server' in syncPromises[action.label])
+            ) {
+              throw new Error(`sync barrier ${action.label} not found`);
+            }
+            serverContainer.syncBarriers[action.label] = () => {
+              syncPromises[action.label]['server'].resolve();
+              return syncBarriers[action.label];
+            };
+          }
+          for (const [clientName, client] of Object.entries(containers)) {
+            for (const action of client.actions) {
+              if (action.type !== 'sync') continue;
+              if (
+                !(action.label in syncBarriers) ||
+                !(action.label in syncPromises) ||
+                !(clientName in syncPromises[action.label])
+              ) {
+                throw new Error(`sync barrier ${action.label} not found`);
+              }
+              client.syncBarriers[action.label] = () => {
+                syncPromises[action.label][clientName].resolve();
+                return syncBarriers[action.label];
+              };
+            }
+          }
+
+          log('status: run');
+          await Promise.all([
+            (async () => {
+              for (const action of serverActions) {
+                await applyActionServer(network, serverContainer, action, log);
+              }
+            })(),
+            ...Object.entries(containers).map(async ([_clientName, client]) => {
+              for (const action of client.actions) {
+                await applyActionClient(network, client, action, log);
+              }
+            }),
+          ]);
+
+          // wait a little bit to finish processing
+          log('status: cleanup');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await Promise.all(
+            Object.values(containers).map(
+              async (client) => await client.cleanup(),
+            ),
+          );
+          await serverContainer.cleanup();
+
+          const stderrLogFilePath = `${logsDir}/${name}.log`;
+          const logFileHandle = await open(
+            stderrLogFilePath,
+            constants.O_APPEND | constants.O_WRONLY | constants.O_CREAT,
+          );
+
+          const testCase = suite.testCase().name(name);
+
+          for (const [clientName, client] of Object.entries(containers)) {
+            const expectedOutput = client.expectedOutput
+              .map(serializeExpectedOutputEntry)
+              .join('\n');
+            const actualOutput = await client.stdout;
+            const [diff, hasDiff] = constructDiffString(
+              expectedOutput,
+              actualOutput,
+              test.unordered ?? false,
+            );
+
+            if (hasDiff) {
+              const failMessage = test.flaky
+                ? chalk.black.bgYellow(' FLAKED ')
+                : chalk.black.bgRed(' FAIL ');
+              const diffMsg = `
+clientName: ${chalk.red(clientName)} ${failMessage}
+
+${diff}
+
+end diff for ${clientName}, logs will be written to ${stderrLogFilePath}
+                `;
+
+              log(diffMsg);
+
+              if (test.flaky) {
+                testsFlaked.add(name);
+                testCase.standardError(diffMsg);
+              } else {
+                testsFailed.add(name);
+                testCase.failure(diffMsg);
+              }
+
+              logFileHandle.appendFile(
+                stripAnsi(`
+${diffMsg}
+clientName: ${clientName} logs:
+${await client.stderr}
+end logs for ${clientName}
+                `),
+              );
+            }
+          }
+
+          testCase.time((new Date().getTime() - suiteStart.getTime()) / 1000);
+
+          await logFileHandle.close();
+          networks.release(network);
+
+          if (testsFailed.has(name)) {
+            throw new Error('test failed');
+          } else if (testsFlaked.has(name)) {
+            task.skip('flaked');
+          }
+        },
       }),
-    ]);
-
-    // wait a little bit to finish processing
-    console.log(chalk.yellow(`[${name}] cleanup`));
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    await Promise.all(
-      Object.values(containers).map(async (client) => await client.cleanup()),
     );
-    await serverContainer.cleanup();
 
-    console.log(chalk.yellow(`[${name}] check`));
-
-    // for each client diff actual output with expected output
-    let testFailed = false;
-    const diffs = [];
-    for (const [clientName, client] of Object.entries(containers)) {
-      const expectedOutput = client.expectedOutput
-        .map(serializeExpectedOutputEntry)
-        .join('\n');
-      const actualOutput = await client.stdout;
-      const [diff, hasDiff] = constructDiffString(
-        expectedOutput,
-        actualOutput,
-        test.unordered ?? false,
-      );
-
-      if (hasDiff) {
-        testFailed = true;
-        diffs.push(`[${name}] ${clientName}\n` + diff);
-        if (test.flaky) {
-          console.log(
-            '::group::' +
-              chalk.red(`[${name}] ${clientName} `) +
-              chalk.black.bgMagenta(` FLAKE `),
-          );
-        } else {
-          console.log(
-            '::group::' +
-              chalk.red(`[${name}] ${clientName} `) +
-              chalk.black.bgRed(` FAIL `),
-          );
-        }
-        console.log(diff + '\n');
-
-        console.log('::group::' + chalk.yellow(`[${name}] ${clientName} logs`));
-        console.log(await client.stderr);
-        console.log('::endgroup::');
-        console.log('::endgroup::');
-      } else {
-        console.log(
-          chalk.green(`[${name}] ${clientName} `) +
-            chalk.black.bgGreen(` PASS `),
-        );
-      }
-    }
-
-    if (testFailed) {
-      console.log('::group::' + chalk.yellow(`[${name}] server logs`));
-      console.log(await serverContainer.stderr);
-      console.log('::endgroup::');
-
-      if (test.flaky) {
-        // This test is marked as passing, but still add the output.
-        suite
-          .testCase()
-          .name(name)
-          .time((new Date().getTime() - suiteStart.getTime()) / 1000)
-          .standardError(diffs.join('\n'));
-        testsFlaked.push(name);
-      } else {
-        const testCase = suite
-          .testCase()
-          .name(name)
-          .time((new Date().getTime() - suiteStart.getTime()) / 1000);
-        for (const diff of diffs) {
-          testCase.failure(diff);
-        }
-        testsFailed.push(name);
-      }
-    } else {
-      suite
-        .testCase()
-        .name(name)
-        .time((new Date().getTime() - suiteStart.getTime()) / 1000);
-    }
-
-    numTests++;
-    console.log('\n');
-  }
-
-  console.log(chalk.black.bgYellow(' SUMMARY '));
-  console.log(
-    chalk.green(
-      `passed ${numTests - (testsFailed.length + testsFlaked.length)}/${numTests}`,
-    ),
-  );
-  if (testsFlaked.length) {
-    console.log(chalk.magenta(`flaked:`));
-    testsFlaked.forEach((name) => console.log(chalk.red(`- ${name}`)));
-  }
-  if (testsFailed.length) {
-    console.log(chalk.red(`failed:`));
-    testsFailed.forEach((name) => console.log(chalk.red(`- ${name}`)));
-  }
+  const taskrunner = new Manager({
+    concurrent: parallel,
+    rendererOptions: {
+      collapseSkips: false,
+      collapseErrors: false,
+      suffixSkips: true,
+      suffixRetries: true,
+      indentation: 4,
+      clearOutput: false,
+      removeEmptyLines: false,
+      timer: PRESET_TIMER,
+    },
+    exitOnError: false,
+  });
+  taskrunner.add(tasks);
+  await taskrunner.runAll();
 
   suite.time((new Date().getTime() - suiteStart.getTime()) / 1000);
+
+  // Sometimes task runner can take a bit to flush the output
+  // we log and wait for a second
+  console.log('');
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // print summary
+  const summary = `${chalk.black.bgYellow(' SUMMARY ')}
+passed ${numTests - (testsFailed.size + testsFlaked.size)}/${numTests}
+
+${chalk.magenta(`flaked:`)}
+${Array.from(testsFlaked)
+  .map((name) => chalk.magenta(`- ${name}`))
+  .join('\n')}
+
+${chalk.red(`failed:`)}
+${Array.from(testsFailed)
+  .map((name) => chalk.red(`- ${name}\n`))
+  .join('\n')}
+`;
+
+  await writeFile(`${logsDir}/summary.txt`, stripAnsi(summary));
+  console.log(summary);
 
   await mkdir('tests/results', { recursive: true });
   builder.writeTo(`tests/results/${clientImpl}-${serverImpl}.xml`);
 
-  return testsFailed.length;
+  return testsFailed.size;
 }
 
 // run the test suite with specific ignore lists
@@ -391,4 +447,4 @@ const numFailed = await runSuite(
 
 await cleanup();
 
-process.exit(numFailed);
+process.exit(numFailed > 0 ? 1 : 0);
