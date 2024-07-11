@@ -337,12 +337,15 @@ async function runSuite(
               test.unordered ?? false,
             );
 
+            let diffMsg = '';
             if (hasDiff) {
               const failMessage = test.flaky
                 ? chalk.black.bgYellow(' FLAKED ')
                 : chalk.black.bgRed(' FAIL ');
-              const diffMsg = `
+              diffMsg = `
 clientName: ${chalk.red(clientName)} ${failMessage}
+
+diff:
 
 ${diff}
 
@@ -358,16 +361,21 @@ end diff for ${clientName}, logs will be written to ${stderrLogFilePath}
                 testsFailed.add(name);
                 testCase.failure(diffMsg);
               }
+            }
 
-              logFileHandle.appendFile(
-                stripAnsi(`
-${diffMsg}
+            await logFileHandle.appendFile(
+              stripAnsi(`
+${hasDiff ? diffMsg : 'SUCCESS'}
+
 clientName: ${clientName} logs:
 ${await client.stderr}
 end logs for ${clientName}
-                `),
-              );
-            }
+
+server logs:
+${await serverContainer.stderr}
+end logs for server
+              `),
+            );
           }
 
           testCase.time((new Date().getTime() - suiteStart.getTime()) / 1000);
