@@ -78,3 +78,10 @@ jobs:
         with:
           name: test-results-${{ matrix.client }}-${{ matrix.server }}
           path: tests/results/${{ matrix.client }}-${{ matrix.server }}.xml
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: logs-${{ matrix.client }}-${{ matrix.server }}
+          path: logs/
+          if-no-files-found: warn

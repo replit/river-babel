@@ -152,7 +152,7 @@ async function runSuite(
   let testsFailed: Set<string> = new Set();
   let testsFlaked: Set<string> = new Set();
 
-  const logsDir = `./logs/${Date.now()}/`;
+  const logsDir = `./logs/${clientImpl}-${serverImpl}/${Date.now()}/`;
   await mkdir(logsDir, { recursive: true });
 
   let numTests = 0;
