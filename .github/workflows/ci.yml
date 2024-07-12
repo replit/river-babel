@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  static-checks:
+  static:
     runs-on: ubuntu-latest
     permissions:
       contents: write
