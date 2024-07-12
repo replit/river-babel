@@ -13,11 +13,11 @@ import {
 import {
   buildImage,
   cleanup,
-  setupNetworks,
   applyActionClient,
   applyActionServer,
   setupContainer,
   type ClientContainer,
+  getNetwork,
 } from './src/docker';
 import KvRpcTests from './tests/basic/kv';
 import EchoTests from './tests/basic/echo';
@@ -137,7 +137,6 @@ async function runSuite(
 ): Promise<number> {
   await buildImage(clientImpl, 'client');
   await buildImage(serverImpl, 'server');
-  const networks = await setupNetworks(parallel);
 
   const suiteStart = new Date();
 
@@ -182,7 +181,7 @@ async function runSuite(
             task.output = msg;
           };
 
-          const network = networks.acquire();
+          const { network, cleanupNetwork } = await getNetwork(task.title, log);
 
           log('status: setup');
           const testId = randomBytes(8).toString('hex');
@@ -197,7 +196,7 @@ async function runSuite(
           );
 
           let serverActions: ServerAction[] = test.server?.serverActions ?? [];
-          const containers: Record<string, ClientContainer> = {};
+          const clientContainers: Record<string, ClientContainer> = {};
           for (const [clientName, testEntry] of Object.entries(test.clients)) {
             // client case
             const { actions, expectedOutput } = testEntry;
@@ -210,7 +209,7 @@ async function runSuite(
               network,
               log,
             );
-            containers[clientName] = {
+            clientContainers[clientName] = {
               ...container,
               actions,
               expectedOutput,
@@ -242,7 +241,7 @@ async function runSuite(
             if (action.type !== 'sync') continue;
             processSyncAction('server', action.label);
           }
-          for (const [clientName, client] of Object.entries(containers)) {
+          for (const [clientName, client] of Object.entries(clientContainers)) {
             for (const action of client.actions) {
               if (action.type !== 'sync') continue;
               processSyncAction(clientName, action.label);
@@ -272,7 +271,7 @@ async function runSuite(
               return syncBarriers[action.label];
             };
           }
-          for (const [clientName, client] of Object.entries(containers)) {
+          for (const [clientName, client] of Object.entries(clientContainers)) {
             for (const action of client.actions) {
               if (action.type !== 'sync') continue;
               if (
@@ -296,22 +295,27 @@ async function runSuite(
                 await applyActionServer(network, serverContainer, action, log);
               }
             })(),
-            ...Object.entries(containers).map(async ([_clientName, client]) => {
-              for (const action of client.actions) {
-                await applyActionClient(network, client, action, log);
-              }
-            }),
+            ...Object.entries(clientContainers).map(
+              async ([_clientName, client]) => {
+                for (const action of client.actions) {
+                  await applyActionClient(network, client, action, log);
+                }
+              },
+            ),
           ]);
 
           // wait a little bit to finish processing
           log('status: cleanup');
           await new Promise((resolve) => setTimeout(resolve, 2000));
           await Promise.all(
-            Object.values(containers).map(
+            Object.values(clientContainers).map(
               async (client) => await client.cleanup(),
             ),
           );
           await serverContainer.cleanup();
+          await cleanupNetwork();
+
+          log('status: writing results');
 
           const stderrLogFilePath = `${logsDir}/${name}.log`;
           const logFileHandle = await open(
@@ -319,7 +323,7 @@ async function runSuite(
             constants.O_APPEND | constants.O_WRONLY | constants.O_CREAT,
           );
 
-          for (const [clientName, client] of Object.entries(containers)) {
+          for (const [clientName, client] of Object.entries(clientContainers)) {
             const expectedOutput = client.expectedOutput
               .map(serializeExpectedOutputEntry)
               .join('\n');
@@ -370,7 +374,6 @@ end logs for server
           }
 
           await logFileHandle.close();
-          networks.release(network);
 
           if (testsFailed.has(name)) {
             throw new Error('test failed');
@@ -422,6 +425,7 @@ ${Array.from(testsFailed)
 
   await writeFile(`${logsDir}/summary.txt`, stripAnsi(summary));
   console.log(summary);
+  console.log('logs written to ', logsDir);
 
   await mkdir('tests/results', { recursive: true });
 
