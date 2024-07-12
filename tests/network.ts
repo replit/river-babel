@@ -1,5 +1,5 @@
 import type { ClientAction, ExpectedOutputEntry, Test } from '../src/actions';
-import { WS_DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS } from './constants';
+import { WS_DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS, SESSION_DISCONNECT_GRACE } from './constants';
 
 const SurvivesTransientNetworkBlips: Test = {
   clients: {
@@ -625,7 +625,7 @@ const ClientLongHibernation: Test = {
         },
         { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
         { type: 'pause_container' },
-        { type: 'sleep', ms: WS_DISCONNECT_PERIOD_MS },
+        { type: 'sleep', ms: SESSION_DISCONNECT_GRACE },
         { type: 'unpause_container' },
         {
           type: 'invoke',
