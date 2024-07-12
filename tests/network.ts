@@ -1,5 +1,9 @@
 import type { ClientAction, ExpectedOutputEntry, Test } from '../src/actions';
-import { WS_DISCONNECT_PERIOD_MS, SESSION_DISCONNECT_MS, SESSION_DISCONNECT_GRACE } from './constants';
+import {
+  WS_DISCONNECT_PERIOD_MS,
+  SESSION_DISCONNECT_MS,
+  SESSION_DISCONNECT_GRACE,
+} from './constants';
 
 const SurvivesTransientNetworkBlips: Test = {
   clients: {
