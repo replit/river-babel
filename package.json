@@ -19,7 +19,6 @@
     "dockerode": "^4.0.2",
     "isomorphic-ws": "^5.0.0",
     "it-pushable": "^3.2.3",
-    "junit-report-builder": "^3.2.1",
     "listr2": "^8.2.3",
     "log-update": "^6.0.0",
     "nanoid": "^5.0.6",
@@ -27,7 +26,6 @@
     "strip-ansi": "^7.1.0",
     "tsx": "^4.7.2",
     "ws": "^8.16.0",
-    "xunit-viewer": "^10.6.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
