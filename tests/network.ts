@@ -59,7 +59,6 @@ const ShortConnectionDisconnectTest: Test = {
 };
 
 const SessionDisconnectTest: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -116,7 +115,6 @@ const SurvivesLongSessionIdle: Test = {
 };
 
 const ShouldNotSendBufferAfterSessionDisconnect: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -543,7 +541,6 @@ const ShortDisconnectMultipleTimes: Test = {
 };
 
 const DisconnectMultipleTimes: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -585,8 +582,69 @@ const DisconnectMultipleTimes: Test = {
   },
 };
 
+const ClientShortHibernation: Test = {
+  clients: {
+    client: {
+      actions: [
+        {
+          type: 'invoke',
+          id: '1',
+          proc: 'kv.set',
+          payload: { k: 'foo', v: 42 },
+        },
+        { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
+        { type: 'pause_container' },
+        { type: 'sleep', ms: WS_DISCONNECT_PERIOD_MS },
+        { type: 'unpause_container' },
+        {
+          type: 'invoke',
+          id: '3',
+          proc: 'kv.set',
+          payload: { k: 'foo', v: 42 },
+        },
+      ],
+      expectedOutput: [
+        { id: '1', status: 'ok', payload: 42 },
+        { id: '2', status: 'ok', payload: 42 },
+        { id: '2', status: 'ok', payload: 43 },
+        { id: '3', status: 'ok', payload: 43 },
+      ],
+    },
+  },
+};
+
+const ClientLongHibernation: Test = {
+  clients: {
+    client: {
+      actions: [
+        {
+          type: 'invoke',
+          id: '1',
+          proc: 'kv.set',
+          payload: { k: 'foo', v: 42 },
+        },
+        { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
+        { type: 'pause_container' },
+        { type: 'sleep', ms: WS_DISCONNECT_PERIOD_MS },
+        { type: 'unpause_container' },
+        {
+          type: 'invoke',
+          id: '3',
+          proc: 'kv.set',
+          payload: { k: 'foo', v: 42 },
+        },
+      ],
+      expectedOutput: [
+        { id: '1', status: 'ok', payload: 42 },
+        { id: '2', status: 'ok', payload: 42 },
+        { id: '2', status: 'err', payload: 'UNEXPECTED_DISCONNECT' },
+        { id: '3', status: 'ok', payload: 43 },
+      ],
+    },
+  },
+};
+
 const ComplexSituation: Test = {
-  flaky: true,
   clients: {
     client1: {
       actions: [
@@ -816,5 +874,7 @@ export default {
   WatchDuringDisconnect,
   ShortDisconnectMultipleTimes,
   DisconnectMultipleTimes,
+  ClientShortHibernation,
+  ClientLongHibernation,
   ComplexSituation,
 };

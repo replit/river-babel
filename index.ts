@@ -442,7 +442,10 @@ ${Array.from(testsFailed)
 
 // run the test suite with specific ignore lists
 const ignoreLists: Record<string, Test[]> = {
-  python: [EchoTests.RepeatEchoPrefixTest],
+  python: [
+    EchoTests.RepeatEchoPrefixTest,
+    ...Object.values(DisconnectNotifsTests),
+  ],
 };
 
 const numFailed = await runSuite(

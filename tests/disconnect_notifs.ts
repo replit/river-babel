@@ -2,7 +2,6 @@ import type { Test } from '../src/actions';
 import { SESSION_DISCONNECT_MS } from './constants';
 
 const RpcDisconnectNotifs: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -32,7 +31,6 @@ const RpcDisconnectNotifs: Test = {
 };
 
 const SubscribeDisconnectNotifs: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -57,7 +55,6 @@ const SubscribeDisconnectNotifs: Test = {
 };
 
 const StreamDisconnectNotifs: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
@@ -81,7 +78,6 @@ const StreamDisconnectNotifs: Test = {
 };
 
 const UploadDisconnectNotifs: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [

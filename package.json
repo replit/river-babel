@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@listr2/manager": "^2.0.10",
-    "@replit/river": "^0.24.1",
+    "@replit/river": "^0.25.0",
     "@sinclair/typebox": "^0.32.20",
     "chalk": "^5.3.0",
     "diff": "^5.2.0",
