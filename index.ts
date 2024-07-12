@@ -1,11 +1,10 @@
 import { randomBytes } from 'crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { structuredPatch } from 'diff';
 import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import builder from 'junit-report-builder';
 import {
   type Test,
   serializeExpectedOutputEntry,
@@ -141,9 +140,6 @@ async function runSuite(
   const networks = await setupNetworks(parallel);
 
   const suiteStart = new Date();
-  const suite = builder
-    .testSuite()
-    .name(`river-babel (${clientImpl}, ${serverImpl})`);
 
   console.log('Starting Tests');
   console.log('Client:', clientImpl, 'Server:', serverImpl);
@@ -152,7 +148,7 @@ async function runSuite(
   let testsFailed: Set<string> = new Set();
   let testsFlaked: Set<string> = new Set();
 
-  const logsDir = `./logs/${Date.now()}/`;
+  const logsDir = `./logs/${clientImpl}-${serverImpl}/${Date.now()}/`;
   await mkdir(logsDir, { recursive: true });
 
   let numTests = 0;
@@ -171,7 +167,6 @@ async function runSuite(
               !nameFilters.some((filter) => name.includes(filter))) ||
             ignore.includes(test)
           ) {
-            suite.testCase().name(name).skipped();
             return true;
           }
 
@@ -324,8 +319,6 @@ async function runSuite(
             constants.O_APPEND | constants.O_WRONLY | constants.O_CREAT,
           );
 
-          const testCase = suite.testCase().name(name);
-
           for (const [clientName, client] of Object.entries(containers)) {
             const expectedOutput = client.expectedOutput
               .map(serializeExpectedOutputEntry)
@@ -356,10 +349,8 @@ end diff for ${clientName}, logs will be written to ${stderrLogFilePath}
 
               if (test.flaky) {
                 testsFlaked.add(name);
-                testCase.standardError(diffMsg);
               } else {
                 testsFailed.add(name);
-                testCase.failure(diffMsg);
               }
             }
 
@@ -377,8 +368,6 @@ end logs for server
               `),
             );
           }
-
-          testCase.time((new Date().getTime() - suiteStart.getTime()) / 1000);
 
           await logFileHandle.close();
           networks.release(network);
@@ -409,8 +398,6 @@ end logs for server
   taskrunner.add(tasks);
   await taskrunner.runAll();
 
-  suite.time((new Date().getTime() - suiteStart.getTime()) / 1000);
-
   // Sometimes task runner can take a bit to flush the output
   // we log and wait for a second
   console.log('');
@@ -418,7 +405,9 @@ end logs for server
 
   // print summary
   const summary = `${chalk.black.bgYellow(' SUMMARY ')}
-passed ${numTests - (testsFailed.size + testsFlaked.size)}/${numTests}
+  total time: ${(new Date().getTime() - suiteStart.getTime()) / 1000} seconds
+
+  passed ${numTests - (testsFailed.size + testsFlaked.size)}/${numTests}
 
 ${chalk.magenta(`flaked:`)}
 ${Array.from(testsFlaked)
@@ -435,7 +424,6 @@ ${Array.from(testsFailed)
   console.log(summary);
 
   await mkdir('tests/results', { recursive: true });
-  builder.writeTo(`tests/results/${clientImpl}-${serverImpl}.xml`);
 
   return testsFailed.size;
 }
