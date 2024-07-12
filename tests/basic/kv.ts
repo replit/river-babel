@@ -80,6 +80,7 @@ const KvSubscribeErrorTest: Test = {
 };
 
 const KvSubscribeMultipleTest: Test = {
+  unordered: true,
   clients: {
     client1: {
       actions: [

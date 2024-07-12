@@ -4,7 +4,11 @@ import chalk from 'chalk';
 import split2 from 'split2';
 import { pushable, type Pushable } from 'it-pushable';
 import { exec } from 'child_process';
-import Docker, { type Network, type Container } from 'dockerode';
+import Docker, {
+  type Container,
+  type Network,
+  type NetworkInspectInfo,
+} from 'dockerode';
 import DockerModem from 'docker-modem';
 import logUpdate from 'log-update';
 import { PassThrough } from 'stream';
@@ -124,56 +128,45 @@ export async function buildImage(impl: string, type: 'client' | 'server') {
   console.log(chalk.green(`${type} image built\n`));
 }
 
-const NETWORK_NAME_PREFIX = 'river-babel';
-export async function setupNetworks(parallel: number) {
-  const foundNetworks = await docker.listNetworks({
-    filters: { name: [NETWORK_NAME_PREFIX] },
+const NETWORK_NAME_PREFIX = `river-babel-${Date.now()}`;
+export async function getNetwork(testName: string, log: (msg: string) => void) {
+  const networkName = `${NETWORK_NAME_PREFIX}-${testName}`;
+
+  const networks = await docker.listNetworks({
+    filters: { name: [networkName] },
   });
 
-  const networkNames = Array.from(
-    { length: parallel },
-    (_, i) => `${NETWORK_NAME_PREFIX}-${i + 1}`,
-  );
+  let networkInfo = networks.find((n) => n.Name === networkName);
+  let network = networkInfo ? docker.getNetwork(networkInfo?.Id) : undefined;
 
-  const networkInfos = foundNetworks.filter((n) =>
-    networkNames.includes(n.Name),
-  );
+  if (!network) {
+    log(chalk.blue(`creating ${testName} network`));
 
-  const networksToCreate = networkNames.filter(
-    (name) => !networkInfos.find((n) => n.Name === name),
-  );
-
-  for (const name of networksToCreate) {
-    console.log(chalk.blue(`creating network ${name}`));
-    await docker.createNetwork({
-      Name: name,
+    network = await docker.createNetwork({
+      Name: networkName,
       Attachable: true,
-    });
-    cleanupFns.push(async () => {
-      console.log(chalk.blue(`cleanup: removing network ${name}`));
-      await docker.getNetwork(name).remove();
     });
   }
 
-  console.log(chalk.green('network ok'));
+  log(chalk.blue(`network ok ${networkName}`));
 
-  const availableNetworks = new Set(
-    networkNames.map((name) => docker.getNetwork(name)),
-  );
+  let didCleanUp = false;
+  const cleanupNetwork = async () => {
+    if (didCleanUp) {
+      return;
+    }
+
+    log(chalk.blue(`cleanup: removing docker network ${networkName}`));
+
+    didCleanUp = true;
+    await docker.getNetwork(networkName).remove({ force: true });
+  };
+
+  cleanupFns.push(cleanupNetwork);
 
   return {
-    acquire: () => {
-      const network = availableNetworks.values().next().value;
-      if (!network) {
-        throw new Error('no available networks');
-      }
-
-      availableNetworks.delete(network);
-      return network;
-    },
-    release: (network: Docker.Network) => {
-      availableNetworks.add(network);
-    },
+    network,
+    cleanupNetwork,
   };
 }
 
@@ -290,6 +283,7 @@ export async function setupContainer(
     log(chalk.blue(`cleanup: removing ${type} container`));
     try {
       const c = docker.getContainer(containerId);
+
       try {
         await c.stop({ t: 5 });
       } catch (err: any) {
@@ -338,10 +332,25 @@ export async function setupContainer(
 }
 
 async function healthCheck(container: Container, network: Network) {
-  const { NetworkSettings: networkSettings } = await container.inspect();
-  const address = `http://${networkSettings.Networks[network.id].IPAddress}:8080/healthz`;
   for (let remaining = 100; remaining >= 0; remaining--) {
     try {
+      const networkInfo: NetworkInspectInfo = await network.inspect();
+
+      if (!networkInfo) {
+        throw new Error('Network could not be inspected');
+      }
+
+      const networkContainer = networkInfo.Containers?.[container.id];
+
+      if (!networkContainer) {
+        throw new Error('Container not found in network');
+      }
+
+      const ipAddressWithSubnet = networkContainer.IPv4Address;
+      const [ip] = ipAddressWithSubnet.split('/');
+
+      const address = `http://${ip}:8080/healthz`;
+
       // We just need for the fetch to give us something that looks like HTTP back.
       await fetch(address, { headers: { Connection: 'close' } });
       break;
