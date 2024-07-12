@@ -598,7 +598,8 @@ const ClientShortHibernation: Test = {
         },
         { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
         { type: 'pause_container' },
-        { type: 'sleep', ms: WS_DISCONNECT_PERIOD_MS },
+        { type: 'sync', label: '2' },
+        { type: 'sync', label: '3' },
         { type: 'unpause_container' },
         {
           type: 'invoke',
@@ -615,6 +616,13 @@ const ClientShortHibernation: Test = {
       ],
     },
   },
+  server: {
+    serverActions: [
+      { type: 'sync', label: '2' },
+      { type: 'sleep', ms: WS_DISCONNECT_PERIOD_MS },
+      { type: 'sync', label: '3' },
+    ],
+  },
 };
 
 const ClientLongHibernation: Test = {
@@ -629,7 +637,8 @@ const ClientLongHibernation: Test = {
         },
         { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
         { type: 'pause_container' },
-        { type: 'sleep', ms: SESSION_DISCONNECT_GRACE },
+        { type: 'sync', label: '2' },
+        { type: 'sync', label: '3' },
         { type: 'unpause_container' },
         {
           type: 'invoke',
@@ -645,6 +654,13 @@ const ClientLongHibernation: Test = {
         { id: '3', status: 'ok', payload: 43 },
       ],
     },
+  },
+  server: {
+    serverActions: [
+      { type: 'sync', label: '2' },
+      { type: 'sleep', ms: SESSION_DISCONNECT_MS },
+      { type: 'sync', label: '3' },
+    ],
   },
 };
 
