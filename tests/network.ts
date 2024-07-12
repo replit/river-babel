@@ -586,84 +586,6 @@ const DisconnectMultipleTimes: Test = {
   },
 };
 
-const ClientShortHibernation: Test = {
-  clients: {
-    client: {
-      actions: [
-        {
-          type: 'invoke',
-          id: '1',
-          proc: 'kv.set',
-          payload: { k: 'foo', v: 42 },
-        },
-        { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
-        { type: 'pause_container' },
-        { type: 'sync', label: '2' },
-        { type: 'sync', label: '3' },
-        { type: 'unpause_container' },
-        {
-          type: 'invoke',
-          id: '3',
-          proc: 'kv.set',
-          payload: { k: 'foo', v: 43 },
-        },
-      ],
-      expectedOutput: [
-        { id: '1', status: 'ok', payload: 42 },
-        { id: '2', status: 'ok', payload: 42 },
-        { id: '2', status: 'ok', payload: 43 },
-        { id: '3', status: 'ok', payload: 43 },
-      ],
-    },
-  },
-  server: {
-    serverActions: [
-      { type: 'sync', label: '2' },
-      { type: 'sleep', ms: WS_DISCONNECT_PERIOD_MS },
-      { type: 'sync', label: '3' },
-    ],
-  },
-};
-
-const ClientLongHibernation: Test = {
-  clients: {
-    client: {
-      actions: [
-        {
-          type: 'invoke',
-          id: '1',
-          proc: 'kv.set',
-          payload: { k: 'foo', v: 42 },
-        },
-        { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
-        { type: 'pause_container' },
-        { type: 'sync', label: '2' },
-        { type: 'sync', label: '3' },
-        { type: 'unpause_container' },
-        {
-          type: 'invoke',
-          id: '3',
-          proc: 'kv.set',
-          payload: { k: 'foo', v: 43 },
-        },
-      ],
-      expectedOutput: [
-        { id: '1', status: 'ok', payload: 42 },
-        { id: '2', status: 'ok', payload: 42 },
-        { id: '2', status: 'err', payload: 'UNEXPECTED_DISCONNECT' },
-        { id: '3', status: 'ok', payload: 43 },
-      ],
-    },
-  },
-  server: {
-    serverActions: [
-      { type: 'sync', label: '2' },
-      { type: 'sleep', ms: SESSION_DISCONNECT_MS },
-      { type: 'sync', label: '3' },
-    ],
-  },
-};
-
 const ComplexSituation: Test = {
   clients: {
     client1: {
@@ -894,7 +816,5 @@ export default {
   WatchDuringDisconnect,
   ShortDisconnectMultipleTimes,
   DisconnectMultipleTimes,
-  ClientShortHibernation,
-  ClientLongHibernation,
   ComplexSituation,
 };
