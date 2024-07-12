@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws';
 import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
 import readline from 'node:readline';
-import { createClient, type Server } from '@replit/river';
+import { createClient } from '@replit/river';
 import type { TransportOptions } from '@replit/river/transport';
 import { BinaryCodec } from '@replit/river/codec';
 import type { serviceDefs } from './serviceDefs';
@@ -26,12 +26,7 @@ const transportOptions: Partial<TransportOptions> = {
 const clientTransport = new WebSocketClientTransport(
   () =>
     (async (): Promise<WebSocket> => {
-      const ws = new WebSocket(`ws://${RIVER_SERVER}:${PORT}`);
-      // Explicitly set an error handler to avoid unhandled exceptions.
-      ws.on('error', (err) => {
-        console.error(err);
-      });
-      return ws;
+      return new WebSocket(`ws://${RIVER_SERVER}:${PORT}`);
     })(),
   CLIENT_TRANSPORT_ID,
   transportOptions,
