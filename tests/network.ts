@@ -600,7 +600,7 @@ const ClientShortHibernation: Test = {
           type: 'invoke',
           id: '3',
           proc: 'kv.set',
-          payload: { k: 'foo', v: 42 },
+          payload: { k: 'foo', v: 43 },
         },
       ],
       expectedOutput: [
@@ -631,7 +631,7 @@ const ClientLongHibernation: Test = {
           type: 'invoke',
           id: '3',
           proc: 'kv.set',
-          payload: { k: 'foo', v: 42 },
+          payload: { k: 'foo', v: 43 },
         },
       ],
       expectedOutput: [
