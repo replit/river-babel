@@ -146,6 +146,11 @@ for await (const line of rl) {
       if (!handle) {
         const [writer, finalize] = client.upload.send.upload({});
 
+        if (payload !== '') {
+          // For UploadNoInit
+          writer.write({ part: payload });
+        }
+
         handles.set(id, { writer, finalize });
       } else {
         if (!handle.writer.isClosed()) {

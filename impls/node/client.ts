@@ -132,6 +132,12 @@ for await (const line of rl) {
     if (proc === 'send') {
       if (!handles.has(id)) {
         const [input, res] = await client.upload.send.upload();
+
+        if (payload !== '') {
+          // For UploadNoInit
+          input.push({ part: payload });
+        }
+
         handles.set(id, input);
 
         (async () => {

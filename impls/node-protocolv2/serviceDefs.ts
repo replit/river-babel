@@ -76,20 +76,11 @@ const KVService = ServiceSchema.define(
 
 const EchoService = ServiceSchema.define({
   echo: Procedure.stream({
-    init: Type.Unknown(),
+    init: Type.Object({}),
     input: Type.Object({ str: Type.String() }),
     output: Type.Object({ out: Type.String() }),
     errors: Type.Never(),
-    async handler(_ctx, init, input, output) {
-      if (
-        init &&
-        typeof init === 'object' &&
-        'str' in init &&
-        typeof init.str === 'string'
-      ) {
-        output.write(Ok({ out: init.str }));
-      }
-
+    async handler(_ctx, _init, input, output) {
       for await (const res of input) {
         if (!res.ok) {
           throw new Error('failed');
@@ -118,18 +109,14 @@ const EchoService = ServiceSchema.define({
 
 const UploadService = ServiceSchema.define({
   send: Procedure.upload({
-    init: Type.Unknown(),
+    init: Type.Object({}),
     input: Type.Object({
       part: Type.Union([Type.String(), Type.Literal('EOF')]),
     }),
     output: Type.Object({ doc: Type.String() }),
     errors: Type.Never(),
-    async handler(_ctx, init, input) {
+    async handler(_ctx, _init, input) {
       let doc = '';
-
-      if (init && typeof init === 'object' && 'part' in init) {
-        doc += init.part;
-      }
 
       for await (const res of input) {
         if (!res.ok) {
