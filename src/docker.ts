@@ -145,6 +145,7 @@ export async function getNetwork(testName: string, log: (msg: string) => void) {
     network = await docker.createNetwork({
       Name: networkName,
       Attachable: true,
+      EnableIPv6: false,
     });
   }
 
@@ -307,10 +308,11 @@ export async function setupContainer(
 
   cleanupFns.push(removeContainerIfExists);
 
-  // warm up the container. wait 10s until we get at least one good result back.
+  // warm up the container. wait 3s until we get at least one good result back.
   if (type === 'server') {
-    healthCheck(container, network);
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
+
   const responses: Pushable<{
     id: string;
     status: 'ok' | 'err';
@@ -329,39 +331,6 @@ export async function setupContainer(
     },
     syncBarriers: {},
   };
-}
-
-async function healthCheck(container: Container, network: Network) {
-  for (let remaining = 100; remaining >= 0; remaining--) {
-    try {
-      const networkInfo: NetworkInspectInfo = await network.inspect();
-
-      if (!networkInfo) {
-        throw new Error('Network could not be inspected');
-      }
-
-      const networkContainer = networkInfo.Containers?.[container.id];
-
-      if (!networkContainer) {
-        throw new Error('Container not found in network');
-      }
-
-      const ipAddressWithSubnet = networkContainer.IPv4Address;
-      const [ip] = ipAddressWithSubnet.split('/');
-
-      const address = `http://${ip}:8080/healthz`;
-
-      // We just need for the fetch to give us something that looks like HTTP back.
-      await fetch(address, { headers: { Connection: 'close' } });
-      break;
-    } catch (err) {
-      if (remaining === 0) {
-        // Last chance, give up.
-        throw err;
-      }
-    }
-    await new Promise((accept) => setTimeout(accept, 100));
-  }
 }
 
 export async function applyActionClient(
@@ -426,9 +395,6 @@ export async function applyActionServer(
   log: (msg: string) => void,
 ) {
   await applyActionCommon(network, containerHandle, action, log);
-  if (action.type == 'restart_container') {
-    healthCheck(containerHandle.container, network);
-  }
 }
 
 async function applyActionCommon(
