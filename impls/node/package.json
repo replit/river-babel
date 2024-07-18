@@ -7,7 +7,7 @@
     "start:client": "tsx client.ts"
   },
   "dependencies": {
-    "@replit/river": "^0.25.2",
+    "@replit/river": "^0.26.2",
     "json-schema-to-typescript": "^13.1.2",
     "ws": "^8.16.0"
   },
