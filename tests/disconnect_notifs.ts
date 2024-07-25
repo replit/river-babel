@@ -21,7 +21,6 @@ const RpcDisconnectNotifs: Test = {
           payload: { k: 'foo', v: 43 },
         },
         { type: 'sleep', ms: SESSION_DISCONNECT_MS },
-        { type: 'connect_network' },
       ],
       expectedOutput: [
         { id: '1', status: 'ok', payload: 42 },
@@ -46,7 +45,6 @@ const SubscribeDisconnectNotifs: Test = {
         { type: 'wait_response', id: '2' },
         { type: 'disconnect_network' },
         { type: 'sleep', ms: SESSION_DISCONNECT_MS },
-        { type: 'connect_network' },
       ],
       expectedOutput: [
         { id: '1', status: 'ok', payload: 42 },
@@ -71,7 +69,6 @@ const StreamDisconnectNotifs: Test = {
         { type: 'wait_response', id: '1' },
         { type: 'disconnect_network' },
         { type: 'sleep', ms: SESSION_DISCONNECT_MS },
-        { type: 'connect_network' },
       ],
       expectedOutput: [
         { id: '1', status: 'ok', payload: 'hello' },
@@ -101,7 +98,6 @@ const UploadDisconnectNotifs: Test = {
         { type: 'sleep', ms: 500 },
         { type: 'disconnect_network' },
         { type: 'sleep', ms: SESSION_DISCONNECT_MS },
-        { type: 'connect_network' },
       ],
       expectedOutput: [
         { id: '1', status: 'err', payload: 'UNEXPECTED_DISCONNECT' },
