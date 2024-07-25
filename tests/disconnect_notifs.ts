@@ -10,7 +10,7 @@ const RpcDisconnectNotifs: Test = {
           id: '1',
           proc: 'kv.set',
           payload: { k: 'foo', v: 42 },
-        }, 
+        },
         { type: 'wait_response', id: '1' },
         { type: 'disconnect_network' },
         // invoking after disconnected should eventually tell us unexpected disconnect

@@ -3,7 +3,7 @@ export const HEARTBEATS_UNTIL_DEAD = 2;
 export const SESSION_DISCONNECT_GRACE = 3000;
 
 // wait durations
-export const GRACE_MS = 250;
+export const GRACE_MS = 500;
 export const WS_DISCONNECT_PERIOD_MS =
   HEARTBEATS_UNTIL_DEAD * HEARTBEAT_MS + GRACE_MS;
 export const SESSION_DISCONNECT_MS =
