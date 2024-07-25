@@ -10,7 +10,8 @@ const RpcDisconnectNotifs: Test = {
           id: '1',
           proc: 'kv.set',
           payload: { k: 'foo', v: 42 },
-        },
+        }, 
+        { type: 'wait_response', id: '1' },
         { type: 'disconnect_network' },
         // invoking after disconnected should eventually tell us unexpected disconnect
         {
@@ -41,6 +42,8 @@ const SubscribeDisconnectNotifs: Test = {
           payload: { k: 'foo', v: 42 },
         },
         { type: 'invoke', id: '2', proc: 'kv.watch', payload: { k: 'foo' } },
+        { type: 'wait_response', id: '1' },
+        { type: 'wait_response', id: '2' },
         { type: 'disconnect_network' },
         { type: 'sleep', ms: SESSION_DISCONNECT_MS },
         { type: 'connect_network' },
@@ -65,6 +68,7 @@ const StreamDisconnectNotifs: Test = {
           proc: 'repeat.echo',
           payload: { s: 'hello' },
         },
+        { type: 'wait_response', id: '1' },
         { type: 'disconnect_network' },
         { type: 'sleep', ms: SESSION_DISCONNECT_MS },
         { type: 'connect_network' },
