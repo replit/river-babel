@@ -114,6 +114,10 @@ async def process_commands():
                         tasks[id_] = asyncio.create_task(
                             handle_upload(id_, test_client)
                         )
+
+                        if payload != "":
+                            # For UploadNoInit
+                            await input_streams[id_].put(payload)
                     else:
                         await input_streams[id_].put(payload)
 

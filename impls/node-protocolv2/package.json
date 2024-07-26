@@ -1,0 +1,20 @@
+{
+  "name": "bun-river",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start:server": "tsx server.ts",
+    "start:client": "tsx client.ts"
+  },
+  "dependencies": {
+    "json-schema-to-typescript": "^13.1.2",
+    "protocolv2": "npm:@replit/river@^0.200.0-rc.6",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.7.2",
+    "typescript": "^5.4.3"
+  }
+}

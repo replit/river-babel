@@ -1,11 +1,12 @@
+/** @format */
+
 import { WebSocket } from 'ws';
-import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
+import { WebSocketClientTransport } from 'protocolv2/transport/ws/client';
 import readline from 'node:readline';
-import { createClient, type Server } from '@replit/river';
-import type { TransportOptions } from '@replit/river/transport';
-import { BinaryCodec } from '@replit/river/codec';
+import { createClient, type Result, type WriteStream } from 'protocolv2';
+import type { TransportOptions } from 'protocolv2/transport';
+import { BinaryCodec } from 'protocolv2/codec';
 import type { serviceDefs } from './serviceDefs';
-import type { Pushable } from 'it-pushable';
 
 const {
   PORT,
@@ -58,7 +59,16 @@ const rl = readline.createInterface({
   terminal: false,
 });
 
-const handles = new Map<string, Pushable<unknown>>();
+const handles = new Map<
+  // proc ID
+  string,
+  {
+    writer: WriteStream<unknown>;
+    // upload has a finalize function
+    finalize?: () => Promise<Result<any, { code: string; message: string }>>;
+  }
+>();
+
 for await (const line of rl) {
   const match = line.match(
     /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
@@ -79,7 +89,7 @@ for await (const line of rl) {
         console.log(`${id} -- err:${res.payload.code}`);
       }
     } else if (proc === 'watch') {
-      const [res] = await client.kv.watch.subscribe({ k: payload });
+      const res = client.kv.watch.subscribe({ k: payload });
       (async () => {
         for await (const v of res) {
           if (v.ok) {
@@ -92,10 +102,11 @@ for await (const line of rl) {
     }
   } else if (svc === 'repeat') {
     if (proc === 'echo') {
-      if (!handles.has(id)) {
-        const [input, output] = await client.repeat.echo.stream();
+      const handle = handles.get(id);
+      if (!handle) {
+        const [writer, reader] = client.repeat.echo.stream({});
         (async () => {
-          for await (const v of output) {
+          for await (const v of reader) {
             if (v.ok) {
               console.log(`${id} -- ok:${v.payload.out}`);
             } else {
@@ -104,17 +115,18 @@ for await (const line of rl) {
           }
         })();
 
-        handles.set(id, input);
+        handles.set(id, { writer: writer });
       } else {
-        handles.get(id)!.push({ str: payload });
+        handle.writer.write({ str: payload });
       }
     } else if (proc === 'echo_prefix') {
-      if (!handles.has(id)) {
-        const [input, output] = await client.repeat.echo_prefix.stream({
+      const handle = handles.get(id);
+      if (!handle) {
+        const [writer, reader] = await client.repeat.echo_prefix.stream({
           prefix: payload,
         });
         (async () => {
-          for await (const v of output) {
+          for await (const v of reader) {
             if (v.ok) {
               console.log(`${id} -- ok:${v.payload.out}`);
             } else {
@@ -123,33 +135,46 @@ for await (const line of rl) {
           }
         })();
 
-        handles.set(id, input);
+        handles.set(id, { writer });
       } else {
-        handles.get(id)!.push({ str: payload });
+        handle.writer.write({ str: payload });
       }
     }
   } else if (svc === 'upload') {
     if (proc === 'send') {
-      if (!handles.has(id)) {
-        const [input, res] = await client.upload.send.upload();
+      const handle = handles.get(id);
+      if (!handle) {
+        const [writer, finalize] = client.upload.send.upload({});
 
         if (payload !== '') {
           // For UploadNoInit
-          input.push({ part: payload });
+          writer.write({ part: payload });
         }
 
-        handles.set(id, input);
+        handles.set(id, { writer, finalize });
+      } else {
+        if (!handle.writer.isClosed()) {
+          handle.writer.write({ part: payload });
+        }
 
-        (async () => {
-          const final = await res;
+        if (
+          payload === 'EOF' ||
+          // the closed condition will always lead to UNEXPECTED_DISCONNECT
+          // returned from finalize we do this to match other implementation
+          handle.writer.isClosed()
+        ) {
+          if (!handle.finalize) {
+            throw new Error('Expected upload handle to have a finalizer');
+          }
+
+          const final = await handle.finalize();
+
           if (final.ok) {
             console.log(`${id} -- ok:${final.payload.doc}`);
           } else {
             console.log(`${id} -- err:${final.payload.code}`);
           }
-        })();
-      } else {
-        handles.get(id)!.push({ part: payload });
+        }
       }
     }
   }
