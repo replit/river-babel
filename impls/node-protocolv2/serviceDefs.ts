@@ -1,5 +1,5 @@
 // protov2 service definitions should match v1 with new init field requirement
-import { ServiceSchema, Ok, Procedure, Err } from 'protocolv2';
+import { ServiceSchema, Ok, Procedure, Err } from '@replit/river';
 import { Type } from '@sinclair/typebox';
 
 export class Observable<T> {
