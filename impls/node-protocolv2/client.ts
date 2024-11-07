@@ -1,13 +1,17 @@
 /** @format */
-
-import { WebSocket } from 'ws';
-import { WebSocketClientTransport } from 'protocolv2/transport/ws/client';
 import readline from 'node:readline';
-import { createClient, type Result, type Writable } from 'protocolv2';
-import type { TransportOptions } from 'protocolv2/transport';
-import { BinaryCodec } from 'protocolv2/codec';
+
+import type { TransportOptions } from '@replit/river/transport';
 import type { serviceDefs } from './serviceDefs';
 import assert from 'node:assert';
+import { BinaryCodec } from '@replit/river/codec';
+import { WebSocket } from 'ws';
+import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
+import {
+  createClient,
+  type Result,
+  type Writable,
+} from '@replit/river';
 
 const {
   PORT,

@@ -1,7 +1,12 @@
+
+import readline from 'node:readline';
+import type { Pushable } from 'it-pushable';
+import type { TransportOptions } from '@replit/river/transport';
+import type { serviceDefs } from './serviceDefs';
+import { BinaryCodec } from '@replit/river/codec';
 import { WebSocket } from 'ws';
 import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
-import readline from 'node:readline';
-import { createClient, type Server } from '@replit/river';
+import { createClient } from '@replit/river';
 import type { TransportOptions } from '@replit/river/transport';
 import { BinaryCodec } from '@replit/river/codec';
 import type { serviceDefs } from './serviceDefs';
