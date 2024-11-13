@@ -12,6 +12,7 @@ COPY ./river-python /usr/src/river/river-python
 
 RUN poetry install
 
-COPY ./ .
+COPY . .
 
-CMD ["poetry", "run", "python", "-u", "client.py", "--log-cli-level=debug"]
+# bash is required for "time" in python:3.11-slim-bookworm
+CMD ["bash", "-c", "time timeout 120 poetry run python -u client.py --log-cli-level=debug"]

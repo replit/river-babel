@@ -14,4 +14,5 @@ RUN poetry install
 
 COPY . .
 
-CMD ["poetry", "run", "python", "server.py", "--log-cli-level=debug"]
+# bash is required for "time" in python:3.11-slim-bookworm
+CMD ["bash", "-c", "time timeout 120 poetry run python server.py --log-cli-level=debug"]
