@@ -51,7 +51,7 @@ const {
     name: {
       type: 'array',
       string: true,
-      default: [] as Array<string>,
+      default: [] as string[],
       description: 'only run tests that contain the specified string',
     },
     parallel: {
@@ -145,8 +145,8 @@ async function runSuite(
   console.log('Client:', clientImpl, 'Server:', serverImpl);
   console.log(chalk.reset());
 
-  let testsFailed: Set<string> = new Set();
-  let testsFlaked: Set<string> = new Set();
+  const testsFailed = new Set<string>();
+  const testsFlaked = new Set<string>();
 
   const logsDir = `./logs/${clientImpl}-${serverImpl}/${Date.now()}/`;
   await mkdir(logsDir, { recursive: true });
@@ -196,7 +196,8 @@ async function runSuite(
             log,
           );
 
-          let serverActions: ServerAction[] = test.server?.serverActions ?? [];
+          const serverActions: ServerAction[] =
+            test.server?.serverActions ?? [];
           const clientContainers: Record<string, ClientContainer> = {};
           for (const [clientName, testEntry] of Object.entries(test.clients)) {
             // client case
@@ -229,10 +230,16 @@ async function runSuite(
             if (!(label in syncPromises)) {
               syncPromises[label] = {};
             }
-            let resolve: () => void = () => {};
+            let resolve: (() => void) | undefined = undefined;
             const promise = new Promise<void>((_resolve) => {
               resolve = _resolve;
             });
+            if (resolve === undefined) {
+              console.warn(
+                `BE AWARE: We're missing the resolve here! ${name}: ${label}`,
+              );
+              return;
+            }
             syncPromises[label][name] = {
               resolve,
               promise,
@@ -251,7 +258,7 @@ async function runSuite(
           // build the barriers out of the sync promises.
           const syncBarriers: Record<string, Promise<unknown>> = {};
           for (const [label, promises] of Object.entries(syncPromises)) {
-            const promiseArray: Array<Promise<unknown>> = [];
+            const promiseArray: Promise<unknown>[] = [];
             for (const { promise } of Object.values(promises)) {
               promiseArray.push(promise);
             }
@@ -296,13 +303,11 @@ async function runSuite(
                 await applyActionServer(network, serverContainer, action, log);
               }
             })(),
-            ...Object.entries(clientContainers).map(
-              async ([_clientName, client]) => {
-                for (const action of client.actions) {
-                  await applyActionClient(network, client, action, log);
-                }
-              },
-            ),
+            ...Object.values(clientContainers).map(async (client) => {
+              for (const action of client.actions) {
+                await applyActionClient(network, client, action, log);
+              }
+            }),
           ]);
 
           // wait a little bit to finish processing

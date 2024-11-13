@@ -59,7 +59,7 @@ export type InvokeAction =
       id: string;
       // stream init
       proc: 'repeat.echo';
-      init: {};
+      init: Record<symbol, void>;
     }
   | {
       type: 'invoke';
@@ -87,7 +87,7 @@ export type InvokeAction =
       id: string;
       // upload init
       proc: 'upload.send';
-      init: {};
+      init: Record<symbol, void>;
     }
   | {
       type: 'invoke';
@@ -98,7 +98,7 @@ export type InvokeAction =
     };
 
 export function serializeInvokeAction(action: InvokeAction) {
-  let payload: string = '';
+  let payload = '';
   if (action.proc === 'kv.set') {
     payload = `${action.payload.k} ${action.payload.v}`;
   } else if (action.proc === 'kv.watch') {
@@ -127,17 +127,17 @@ export function serializeInvokeAction(action: InvokeAction) {
   return serialized;
 }
 
-export type ExpectedOutputEntry = {
+export interface ExpectedOutputEntry {
   id: string;
   status: 'ok' | 'err';
   payload: unknown;
-};
+}
 
 export function serializeExpectedOutputEntry(entry: ExpectedOutputEntry) {
   return `${entry.id} -- ${entry.status}:${entry.payload}`;
 }
 
-export type Test = {
+export interface Test {
   clients: Record<
     string,
     {
@@ -153,4 +153,4 @@ export type Test = {
   // Unordered means that prior to diffing the output, it will be sorted lexicographically.
   // Useful for tests that have inherent racy output.
   unordered?: boolean;
-};
+}

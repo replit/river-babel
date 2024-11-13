@@ -136,7 +136,7 @@ export async function getNetwork(testName: string, log: (msg: string) => void) {
     filters: { name: [networkName] },
   });
 
-  let networkInfo = networks.find((n) => n.Name === networkName);
+  const networkInfo = networks.find((n) => n.Name === networkName);
   let network = networkInfo ? docker.getNetwork(networkInfo?.Id) : undefined;
 
   if (!network) {
@@ -286,21 +286,39 @@ export async function setupContainer(
 
       try {
         await c.stop({ t: 5 });
-      } catch (err: any) {
+      } catch (err) {
         // If the container is already stopped, let it be.
-        if ('statusCode' in err && err.statusCode === 304) return;
+        if (
+          !!err &&
+          typeof err === 'object' &&
+          'statusCode' in err &&
+          err.statusCode === 304
+        )
+          return;
         throw err;
       }
       try {
         await c.remove({ force: true });
-      } catch (err: any) {
+      } catch (err) {
         // If the removal is already in progress, let it be.
-        if ('statusCode' in err && err.statusCode === 409) return;
+        if (
+          !!err &&
+          typeof err === 'object' &&
+          'statusCode' in err &&
+          err.statusCode === 409
+        )
+          return;
         throw err;
       }
-    } catch (err: any) {
+    } catch (err) {
       // If the container was not found, let it be.
-      if ('statusCode' in err && err.statusCode === 404) return;
+      if (
+        !!err &&
+        typeof err === 'object' &&
+        'statusCode' in err &&
+        err.statusCode === 404
+      )
+        return;
       throw err;
     }
   };
@@ -372,10 +390,10 @@ export async function applyActionClient(
 ) {
   if (action.type === 'wait_response') {
     let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
-    const timeoutPromise: Promise<{
+    const timeoutPromise = new Promise<{
       done: boolean;
       value?: { id: string; status: 'ok' | 'err'; payload: string };
-    }> = new Promise((accept) => {
+    }>((accept) => {
       const timeoutMs = action.timeout ?? 5000;
       timeoutId = setTimeout(() => {
         log(
@@ -442,7 +460,7 @@ async function applyActionCommon(
       throw new Error(`sync barrier ${action.label} not found`);
     }
     let timeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
-    const timeoutPromise: Promise<true> = new Promise((resolve) => {
+    const timeoutPromise = new Promise<true>((resolve) => {
       const timeoutMs = action.timeout ?? 5000;
       timeoutId = setTimeout(() => {
         log(
