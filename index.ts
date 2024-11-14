@@ -31,6 +31,7 @@ import v2BackwardsCompat from './tests/v2_backwards_compat_server';
 import { PRESET_TIMER, type ListrTask } from 'listr2';
 import { Manager } from '@listr2/manager';
 import { constants, open } from 'fs/promises';
+import assert from 'assert';
 
 const {
   client: clientImpl,
@@ -234,12 +235,10 @@ async function runSuite(
             const promise = new Promise<void>((_resolve) => {
               resolve = _resolve;
             });
-            if (resolve === undefined) {
-              console.warn(
-                `BE AWARE: We're missing the resolve here! ${name}: ${label}`,
-              );
-              return;
-            }
+            assert(
+              resolve,
+              `We're missing the resolve here! ${name}: ${label}`,
+            );
             syncPromises[label][name] = {
               resolve,
               promise,
