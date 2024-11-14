@@ -262,36 +262,23 @@ async function runSuite(
               promiseArray.push(promise);
             }
             syncBarriers[label] = Promise.all(promiseArray);
-          }
-          // install the barriers in all containers.
-          for (const action of serverActions) {
-            if (action.type !== 'sync') continue;
-            if (
-              !(action.label in syncBarriers) ||
-              !(action.label in syncPromises) ||
-              !('server' in syncPromises[action.label])
-            ) {
-              throw new Error(`sync barrier ${action.label} not found`);
-            }
-            serverContainer.syncBarriers[action.label] = () => {
-              syncPromises[action.label]['server'].resolve();
-              return syncBarriers[action.label];
-            };
-          }
-          for (const [clientName, client] of Object.entries(clientContainers)) {
-            for (const action of client.actions) {
-              if (action.type !== 'sync') continue;
-              if (
-                !(action.label in syncBarriers) ||
-                !(action.label in syncPromises) ||
-                !(clientName in syncPromises[action.label])
-              ) {
-                throw new Error(`sync barrier ${action.label} not found`);
+
+            // install the barriers in all containers.
+            for (const [label, peers] of Object.entries(syncPromises)) {
+              for (const [peer, { resolve }] of Object.entries(peers)) {
+                if (peer === 'server') {
+                  serverContainer.syncBarriers[label] = () => {
+                    resolve();
+                    return syncBarriers[label];
+                  };
+                } else {
+                  const client = clientContainers[peer];
+                  client.syncBarriers[label] = () => {
+                    resolve();
+                    return syncBarriers[label];
+                  };
+                }
               }
-              client.syncBarriers[action.label] = () => {
-                syncPromises[action.label][clientName].resolve();
-                return syncBarriers[action.label];
-              };
             }
           }
 
