@@ -71,7 +71,24 @@ const handles = new Map<
 >();
 
 for await (const line of rl) {
-  const { id, init, payload, proc } = JSON.parse(line);
+  const { id, init, payload, proc } = (() => {
+    try {
+      return JSON.parse(line);
+    } catch (e: any) {
+      // Sometimes docker injects this into the stream:
+      // {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
+      const match = e.message.match(/line (\d*) column (\d*)/);
+      if (!!match) {
+        const offset = parseInt(match['2'], 10);
+        const first = JSON.parse(line.substring(0, offset));
+        assert(
+          'hijack' in first,
+          'The only syntax errors that we expect are that Docker jams stuff into the stream',
+        );
+        return JSON.parse(line.substring(offset));
+      }
+    }
+  })();
 
   switch (proc) {
     case 'kv.set': {

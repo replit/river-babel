@@ -72,7 +72,16 @@ async def process_commands() -> None:
             if not line:
                 break
 
-            action = json.loads(line)
+            try:
+                action = json.loads(line)
+            except json.JSONDecodeError as e:
+                # Sometimes docker injects this into the stream:
+                # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
+                offset = e.colno - 1
+                first = json.loads(line[0:offset])
+                assert "hijack" in first
+                action = json.loads(line[offset:])
+
             if not action:
                 print("FATAL: invalid command", line)
                 sys.exit(1)
