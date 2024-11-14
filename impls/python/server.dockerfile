@@ -8,7 +8,6 @@ RUN pip install poetry==1.6.1 && poetry config virtualenvs.create false
 
 COPY pyproject.toml .
 COPY poetry.lock .
-COPY river-python river-python
 COPY src src
 
 RUN poetry install
