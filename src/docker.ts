@@ -475,6 +475,12 @@ export async function applyActionServer(
 ) {
   await applyActionCommon(network, containerHandle, action, log);
   if (action.type == 'restart_container') {
+    // After the server has been restarted, the port mapping will need to be rediscovered:
+    const hostPortMapping: Record<string, string> = await getPortMapping(
+      containerHandle.container,
+    );
+    containerHandle.hostPortMapping = hostPortMapping;
+
     await healthCheck(
       containerHandle.container,
       network,
