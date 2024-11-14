@@ -18,6 +18,7 @@ import {
   setupContainer,
   type ClientContainer,
   getNetwork,
+  type ContainerHandle,
 } from './src/docker';
 import KvRpcTests from './tests/basic/kv';
 import EchoTests from './tests/basic/echo';
@@ -133,6 +134,136 @@ function constructDiffString(
   return [diff.join('\n'), true];
 }
 
+async function runTest(
+  test: Test,
+  title: string,
+  log: (msg: string) => void,
+): Promise<{
+  clientContainers: Record<string, ClientContainer>;
+  serverContainer: ContainerHandle;
+}> {
+  const { network, cleanupNetwork } = await getNetwork(title, log);
+
+  log('status: setup');
+  const testId = randomBytes(8).toString('hex');
+  const serverContainer = await setupContainer(
+    testId,
+    clientImpl,
+    serverImpl,
+    'server',
+    'server',
+    network,
+    log,
+  );
+
+  const serverActions: ServerAction[] = test.server?.serverActions ?? [];
+  const clientContainers: Record<string, ClientContainer> = {};
+  for (const [clientName, testEntry] of Object.entries(test.clients)) {
+    // client case
+    const { actions, expectedOutput } = testEntry;
+    const container = await setupContainer(
+      testId,
+      clientImpl,
+      serverImpl,
+      'client',
+      clientName,
+      network,
+      log,
+    );
+    clientContainers[clientName] = {
+      ...container,
+      actions,
+      expectedOutput,
+    };
+  }
+
+  // build the map of syncpoints to promises.
+  const syncPromises: Record<
+    string,
+    Record<string, { promise: Promise<unknown>; resolve: () => unknown }>
+  > = {};
+  const processSyncAction = (name: string, label: string) => {
+    if (!(label in syncPromises)) {
+      syncPromises[label] = {};
+    }
+    let resolve: (() => void) | undefined = undefined;
+    const promise = new Promise<void>((_resolve) => {
+      resolve = _resolve;
+    });
+    assert(resolve, `We're missing the resolve here! ${name}: ${label}`);
+    syncPromises[label][name] = {
+      resolve,
+      promise,
+    };
+  };
+  for (const action of serverActions) {
+    if (action.type !== 'sync') continue;
+    processSyncAction('server', action.label);
+  }
+  for (const [clientName, client] of Object.entries(clientContainers)) {
+    for (const action of client.actions) {
+      if (action.type !== 'sync') continue;
+      processSyncAction(clientName, action.label);
+    }
+  }
+  // build the barriers out of the sync promises.
+  const syncBarriers: Record<string, Promise<unknown>> = {};
+  for (const [label, promises] of Object.entries(syncPromises)) {
+    const promiseArray: Promise<unknown>[] = [];
+    for (const { promise } of Object.values(promises)) {
+      promiseArray.push(promise);
+    }
+    syncBarriers[label] = Promise.all(promiseArray);
+
+    // install the barriers in all containers.
+    for (const [label, peers] of Object.entries(syncPromises)) {
+      for (const [peer, { resolve }] of Object.entries(peers)) {
+        if (peer === 'server') {
+          serverContainer.syncBarriers[label] = () => {
+            resolve();
+            return syncBarriers[label];
+          };
+        } else {
+          const client = clientContainers[peer];
+          client.syncBarriers[label] = () => {
+            resolve();
+            return syncBarriers[label];
+          };
+        }
+      }
+    }
+  }
+
+  log('status: run');
+  await Promise.all([
+    (async () => {
+      for (const action of serverActions) {
+        await applyActionServer(network, serverContainer, action, log);
+      }
+    })(),
+    ...Object.values(clientContainers).map(async (client) => {
+      for (const action of client.actions) {
+        await applyActionClient(network, client, action, log);
+      }
+    }),
+  ]);
+
+  // wait a little bit to finish processing
+  log('status: cleanup');
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await Promise.all(
+    Object.values(clientContainers).map(
+      async (client) => await client.cleanup(),
+    ),
+  );
+  await serverContainer.cleanup();
+  await cleanupNetwork();
+  return {
+    clientContainers,
+    serverContainer,
+  };
+}
+
 async function runSuite(
   tests: Record<string, Test>,
   ignore: Test[],
@@ -183,129 +314,11 @@ async function runSuite(
             task.output = msg;
           };
 
-          const { network, cleanupNetwork } = await getNetwork(task.title, log);
-
-          log('status: setup');
-          const testId = randomBytes(8).toString('hex');
-          const serverContainer = await setupContainer(
-            testId,
-            clientImpl,
-            serverImpl,
-            'server',
-            'server',
-            network,
+          const { clientContainers, serverContainer } = await runTest(
+            test,
+            task.title,
             log,
           );
-
-          const serverActions: ServerAction[] =
-            test.server?.serverActions ?? [];
-          const clientContainers: Record<string, ClientContainer> = {};
-          for (const [clientName, testEntry] of Object.entries(test.clients)) {
-            // client case
-            const { actions, expectedOutput } = testEntry;
-            const container = await setupContainer(
-              testId,
-              clientImpl,
-              serverImpl,
-              'client',
-              clientName,
-              network,
-              log,
-            );
-            clientContainers[clientName] = {
-              ...container,
-              actions,
-              expectedOutput,
-            };
-          }
-
-          // build the map of syncpoints to promises.
-          const syncPromises: Record<
-            string,
-            Record<
-              string,
-              { promise: Promise<unknown>; resolve: () => unknown }
-            >
-          > = {};
-          const processSyncAction = (name: string, label: string) => {
-            if (!(label in syncPromises)) {
-              syncPromises[label] = {};
-            }
-            let resolve: (() => void) | undefined = undefined;
-            const promise = new Promise<void>((_resolve) => {
-              resolve = _resolve;
-            });
-            assert(
-              resolve,
-              `We're missing the resolve here! ${name}: ${label}`,
-            );
-            syncPromises[label][name] = {
-              resolve,
-              promise,
-            };
-          };
-          for (const action of serverActions) {
-            if (action.type !== 'sync') continue;
-            processSyncAction('server', action.label);
-          }
-          for (const [clientName, client] of Object.entries(clientContainers)) {
-            for (const action of client.actions) {
-              if (action.type !== 'sync') continue;
-              processSyncAction(clientName, action.label);
-            }
-          }
-          // build the barriers out of the sync promises.
-          const syncBarriers: Record<string, Promise<unknown>> = {};
-          for (const [label, promises] of Object.entries(syncPromises)) {
-            const promiseArray: Promise<unknown>[] = [];
-            for (const { promise } of Object.values(promises)) {
-              promiseArray.push(promise);
-            }
-            syncBarriers[label] = Promise.all(promiseArray);
-
-            // install the barriers in all containers.
-            for (const [label, peers] of Object.entries(syncPromises)) {
-              for (const [peer, { resolve }] of Object.entries(peers)) {
-                if (peer === 'server') {
-                  serverContainer.syncBarriers[label] = () => {
-                    resolve();
-                    return syncBarriers[label];
-                  };
-                } else {
-                  const client = clientContainers[peer];
-                  client.syncBarriers[label] = () => {
-                    resolve();
-                    return syncBarriers[label];
-                  };
-                }
-              }
-            }
-          }
-
-          log('status: run');
-          await Promise.all([
-            (async () => {
-              for (const action of serverActions) {
-                await applyActionServer(network, serverContainer, action, log);
-              }
-            })(),
-            ...Object.values(clientContainers).map(async (client) => {
-              for (const action of client.actions) {
-                await applyActionClient(network, client, action, log);
-              }
-            }),
-          ]);
-
-          // wait a little bit to finish processing
-          log('status: cleanup');
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          await Promise.all(
-            Object.values(clientContainers).map(
-              async (client) => await client.cleanup(),
-            ),
-          );
-          await serverContainer.cleanup();
-          await cleanupNetwork();
 
           log('status: writing results');
 
