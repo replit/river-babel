@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import re
@@ -70,59 +71,51 @@ async def process_commands() -> None:
             )
             if not line:
                 break
-            # sometimes the line is like this
-            # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}1 -- upload.send ->
-            if "}" in line:
-                line = line[line.index("}") + 1 :]
 
-            pattern = r"(?P<id>\w+) -- (?P<svc>\w+)\.(?P<proc>\w+) -> ?(?P<payload>.*)"
-            # Perform the match
-            match = re.match(pattern, line)
-
-            # Check if the match was successful and if groups are present
-            if not match:
+            action = json.loads(line)
+            if not action:
                 print("FATAL: invalid command", line)
                 sys.exit(1)
+
             # Extract the named groups
-            id_ = match.group("id")
-            svc = match.group("svc")
-            proc = match.group("proc")
-            payload = match.group("payload")
+            id_ = action["id"]
+            payload = action.get("payload")
 
             # Example handling for a 'kv.set' command
-            if svc == "kv":
-                if proc == "set":
-                    k, v = payload.split(" ")
+            match action["proc"]:
+                case "kv.set":
+                    k = payload["k"]
+                    v = payload["v"]
                     try:
                         res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
                         print(f"{id_} -- ok:{res.v}")
                     except Exception:
                         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
-                elif proc == "watch":
-                    k = payload
+                case "kv.watch":
+                    k = payload["k"]
                     tasks[id_] = asyncio.create_task(handle_watch(id_, k, test_client))
-            elif svc == "repeat":
-                if proc == "echo":
+                case "repeat.echo":
                     if id_ not in input_streams:
                         input_streams[id_] = asyncio.Queue()
                         tasks[id_] = asyncio.create_task(handle_echo(id_, test_client))
                     else:
-                        await input_streams[id_].put(payload)
-            elif svc == "upload":
-                if proc == "send":
+                        s = payload["s"]
+                        await input_streams[id_].put(s)
+                case "upload.send":
                     if id_ not in input_streams:
                         input_streams[id_] = asyncio.Queue()
                         tasks[id_] = asyncio.create_task(
                             handle_upload(id_, test_client)
                         )
 
-                        if payload != "":
+                        if payload is not None:
                             # For UploadNoInit
-                            await input_streams[id_].put(payload)
+                            await input_streams[id_].put(payload["part"])
                     else:
-                        await input_streams[id_].put(payload)
+                        part = payload["part"]
+                        await input_streams[id_].put(part)
 
-                        if payload == "EOF":
+                        if part == "EOF":
                             # Wait for the upload task to complete once EOF is sent
                             await tasks[id_]
                             tasks.pop(id_, None)  # Cleanup task reference

@@ -7,6 +7,7 @@ import { createClient, type Result, type Writable } from 'protocolv2';
 import type { TransportOptions } from 'protocolv2/transport';
 import { BinaryCodec } from 'protocolv2/codec';
 import type { serviceDefs } from './serviceDefs';
+import assert from 'node:assert';
 
 const {
   PORT,
@@ -70,26 +71,22 @@ const handles = new Map<
 >();
 
 for await (const line of rl) {
-  const match = line.match(
-    /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
-  );
-  if (!match || !match.groups) {
-    console.error('FATAL: invalid command', line);
-    process.exit(1);
-  }
+  const { id, init, payload, proc } = JSON.parse(line);
 
-  const { id, svc, proc, payload } = match.groups;
-  if (svc === 'kv') {
-    if (proc === 'set') {
-      const [k, v] = payload.split(' ');
+  switch (proc) {
+    case 'kv.set': {
+      const { k, v } = payload;
       const res = await client.kv.set.rpc({ k, v: parseInt(v) });
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
       } else {
         console.log(`${id} -- err:${res.payload.code}`);
       }
-    } else if (proc === 'watch') {
-      const res = client.kv.watch.subscribe({ k: payload });
+      break;
+    }
+    case 'kv.watch': {
+      const { k } = payload;
+      const res = client.kv.watch.subscribe({ k });
       (async () => {
         for await (const v of res.resReadable) {
           if (v.ok) {
@@ -99,9 +96,9 @@ for await (const line of rl) {
           }
         }
       })();
+      break;
     }
-  } else if (svc === 'repeat') {
-    if (proc === 'echo') {
+    case 'repeat.echo': {
       const handle = handles.get(id);
       if (!handle) {
         const { reqWritable, resReadable } = client.repeat.echo.stream({});
@@ -117,15 +114,17 @@ for await (const line of rl) {
 
         handles.set(id, { writer: reqWritable });
       } else {
-        handle.writer.write({ str: payload });
+        const { s } = payload;
+        handle.writer.write({ str: s });
       }
-    } else if (proc === 'echo_prefix') {
+      break;
+    }
+    case 'repeat.echo_prefix': {
       const handle = handles.get(id);
       if (!handle) {
-        const { reqWritable, resReadable } =
-          await client.repeat.echo_prefix.stream({
-            prefix: payload,
-          });
+        const { reqWritable, resReadable } = client.repeat.echo_prefix.stream({
+          prefix: init.prefix,
+        });
         (async () => {
           for await (const v of resReadable) {
             if (v.ok) {
@@ -138,28 +137,29 @@ for await (const line of rl) {
 
         handles.set(id, { writer: reqWritable });
       } else {
-        handle.writer.write({ str: payload });
+        const { str } = payload;
+        handle.writer.write({ str });
       }
+      break;
     }
-  } else if (svc === 'upload') {
-    if (proc === 'send') {
+    case 'upload.send': {
       const handle = handles.get(id);
       if (!handle) {
         const { reqWritable, finalize } = client.upload.send.upload({});
 
-        if (payload !== '') {
+        if (!!payload && 'part' in payload) {
           // For UploadNoInit
-          reqWritable.write({ part: payload });
+          reqWritable.write({ part: payload.part });
         }
 
         handles.set(id, { writer: reqWritable, finalize });
       } else {
         if (handle.writer.isWritable()) {
-          handle.writer.write({ part: payload });
+          handle.writer.write({ part: payload.part });
         }
 
         if (
-          payload === 'EOF' ||
+          payload.part === 'EOF' ||
           // the closed condition will always lead to UNEXPECTED_DISCONNECT
           // returned from finalize we do this to match other implementation
           !handle.writer.isWritable()
@@ -177,6 +177,7 @@ for await (const line of rl) {
           }
         }
       }
+      break;
     }
   }
 }
