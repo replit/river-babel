@@ -13,7 +13,6 @@ import DockerModem from 'docker-modem';
 import logUpdate from 'log-update';
 import { PassThrough } from 'stream';
 import {
-  serializeInvokeAction,
   type CommonAction,
   type ClientAction,
   type ServerAction,
@@ -434,7 +433,7 @@ export async function applyActionClient(
       }
     }
   } else if (action.type === 'invoke') {
-    containerHandle.stdin.write(serializeInvokeAction(action) + '\n');
+    containerHandle.stdin.write(JSON.stringify(action) + '\n');
     return;
   }
 
