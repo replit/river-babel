@@ -222,6 +222,24 @@ function stderrStreamToString(stream: NodeJS.WritableStream): Promise<string> {
   });
 }
 
+async function getPortMapping(
+  container: Docker.Container,
+): Promise<Record<string, string>> {
+  const inspectResult = await container.inspect();
+  return Object.entries(inspectResult.NetworkSettings.Ports).reduce(
+    (cur, [_port, bindings]) => {
+      const [port, proto] = _port.split('/', 2);
+      if (proto === 'tcp') {
+        for (const { HostPort } of bindings) {
+          cur[port] = HostPort;
+        }
+      }
+      return cur;
+    },
+    {} as Record<string, string>,
+  );
+}
+
 export async function setupContainer(
   testId: string,
   clientImpl: string,
@@ -284,21 +302,8 @@ export async function setupContainer(
   await container.start();
   const [stdin, stdout, stderr] = await containerStreams(container);
 
-  const inspectResult = await container.inspect();
-  const hostPortMapping: Record<string, string> = Object.entries(
-    inspectResult.NetworkSettings.Ports,
-  ).reduce(
-    (cur, [_port, bindings]) => {
-      const [port, proto] = _port.split('/', 2);
-      if (proto === 'tcp') {
-        for (const { HostPort } of bindings) {
-          cur[port] = HostPort;
-        }
-      }
-      return cur;
-    },
-    {} as Record<string, string>,
-  );
+  const hostPortMapping: Record<string, string> =
+    await getPortMapping(container);
 
   const removeContainerIfExists = async () => {
     stdout.end();
