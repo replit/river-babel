@@ -214,7 +214,11 @@ function stderrStreamToString(stream: NodeJS.WritableStream): Promise<string> {
   return new Promise((resolve, reject) => {
     stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
     stream.on('error', (err) => reject(err));
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    stream.on('end', () =>
+      resolve(
+        Buffer.concat(chunks.map((x) => Uint8Array.from(x))).toString('utf8'),
+      ),
+    );
   });
 }
 
