@@ -46,5 +46,6 @@ export type ServiceSurface = typeof server;
 
 const startTime = Date.now();
 httpServer.listen(parseInt(PORT), () => {
-  transport.log?.debug(`pid2 started in ${Date.now() - startTime}ms`);
+  transport.log?.debug(`server listening on ${PORT}`);
+  transport.log?.debug(`server started in ${Date.now() - startTime}ms`);
 });
