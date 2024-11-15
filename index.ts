@@ -339,7 +339,7 @@ async function runSuite(
               test.unordered ?? false,
             );
 
-            let diffMsg = '';
+            let diffMsg: string | undefined = undefined;
             if (hasDiff) {
               const failMessage = test.flaky
                 ? chalk.black.bgYellow(' FLAKED ')
@@ -350,11 +350,7 @@ clientName: ${chalk.red(clientName)} ${failMessage}
 diff:
 
 ${diff}
-
-end diff for ${clientName}, logs will be written to ${stderrLogFilePath}
-                `;
-
-              log(diffMsg);
+`;
 
               if (test.flaky) {
                 testsFlaked.add(name);
@@ -363,9 +359,8 @@ end diff for ${clientName}, logs will be written to ${stderrLogFilePath}
               }
             }
 
-            await logFileHandle.appendFile(
-              stripAnsi(`
-${hasDiff ? diffMsg : 'SUCCESS'}
+            const logOutput = stripAnsi(`
+${diffMsg ?? 'SUCCESS'}
 
 clientName: ${clientName} logs:
 ${await client.stderr}
@@ -374,8 +369,14 @@ end logs for ${clientName}
 server logs:
 ${await serverContainer.stderr}
 end logs for server
-              `),
-            );
+`);
+
+            log(`${!!diffMsg ? logOutput : 'SUCCESS'}
+
+logs will be written to ${stderrLogFilePath}
+`);
+
+            await logFileHandle.appendFile(logOutput);
           }
 
           await logFileHandle.close();
