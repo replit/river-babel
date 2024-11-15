@@ -1,7 +1,17 @@
 import http
 import logging
 import os
-from typing import Any, AsyncIterator, Callable, Dict, Generic, TypeVar, Optional
+from typing import (
+    Any,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    TypeVar,
+    Optional,
+)
+from grpc import ServicerContext
 
 import replit_river as river
 
@@ -36,24 +46,26 @@ class Observable(Generic[T]):
     def get(self) -> T:
         return self.value
 
-    async def set(self, value: T):
+    async def set(self, value: T) -> None:
         new_value = value
         self.value = new_value
         for listener in self.listeners:
             await listener(new_value)
 
-    async def observe(self, listener: Callable[[T], None]):
+    async def observe(
+        self, listener: Callable[[T], Awaitable[None]]
+    ) -> Callable[[], None]:
         self.listeners.append(listener)
         await listener(self.get())  # Initial call for the current value
         return lambda: self.listeners.remove(listener)
 
 
 class KvServicer(service_pb2_grpc.kvServicer):
-    def __init__(self):
+    def __init__(self) -> None:
         self.kv: Dict[str, Observable[int]] = {}
 
     async def set(
-        self, request: service_pb2.KVRequest, context: Any
+        self, request: service_pb2.KVRequest, context: ServicerContext
     ) -> service_pb2.KVResponse:
         key, value = request.k, request.v
         if key not in self.kv:
@@ -65,8 +77,8 @@ class KvServicer(service_pb2_grpc.kvServicer):
         await asyncio.sleep(1 / 100_000_000)
         return service_pb2.KVResponse(v=self.kv[key].get())
 
-    async def watch(
-        self, request: service_pb2.KVRequest, context: Any
+    async def watch(  # type: ignore
+        self, request: service_pb2.KVRequest, context: ServicerContext
     ) -> AsyncIterator[service_pb2.KVResponse | RiverError]:
         key = request.k
         value = request.v
@@ -75,9 +87,9 @@ class KvServicer(service_pb2_grpc.kvServicer):
             return
         observable = self.kv[key]
 
-        queue = asyncio.Queue()
+        queue = asyncio.Queue[int]()
 
-        async def listener(value):
+        async def listener(value: int) -> None:
             await queue.put(value)
 
         unsubscribe = await observable.observe(listener)
@@ -91,7 +103,9 @@ class KvServicer(service_pb2_grpc.kvServicer):
 
 class UploadServicer(service_pb2_grpc.uploadServicer):
     async def send(
-        self, request_iterator: AsyncIterator[service_pb2.UploadInput], context
+        self,
+        request_iterator: AsyncIterator[service_pb2.UploadInput],
+        context: ServicerContext,
     ) -> service_pb2.UploadOutput:
         doc = ""
         async for request in request_iterator:
@@ -103,7 +117,9 @@ class UploadServicer(service_pb2_grpc.uploadServicer):
 
 class RepeatServicer(service_pb2_grpc.repeatServicer):
     async def echo(
-        self, request_iterator: AsyncIterator[service_pb2.EchoInput], context
+        self,
+        request_iterator: AsyncIterator[service_pb2.EchoInput],
+        context: ServicerContext,
     ) -> AsyncIterator[service_pb2.EchoOutput]:
         async for request in request_iterator:
             yield service_pb2.EchoOutput(out=request.str)
@@ -111,6 +127,7 @@ class RepeatServicer(service_pb2_grpc.repeatServicer):
 
 async def start_server() -> None:
     logging.info("started server")
+    assert SERVER_TRANSPORT_ID
     server = river.Server(
         server_id=SERVER_TRANSPORT_ID,
         transport_options=TransportOptions(
@@ -132,6 +149,7 @@ async def start_server() -> None:
     async def process_request(path: str, _: Headers) -> Optional[HTTPResponse]:
         if path == "/healthz":
             return http.HTTPStatus.OK, [], b"OK\n"
+        return None
 
     async def _serve() -> None:
         async with serve(

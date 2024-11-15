@@ -8,8 +8,7 @@ from typing import AsyncIterator, Dict
 from replit_river import (
     Client,
 )
-from replit_river.task_manager import BackgroundTaskManager
-from websockets import connect
+from replit_river.error_schema import RiverError
 from .protos.client_schema import (
     KvSetInput,
     KvWatchInput,
@@ -42,7 +41,7 @@ input_streams: Dict[str, asyncio.Queue] = {}
 tasks: Dict[str, asyncio.Task] = {}
 
 
-async def process_commands():
+async def process_commands() -> None:
     logging.error("start python river client")
     uri = f"ws://{RIVER_SERVER}:{PORT}"
     logging.error(
@@ -51,6 +50,8 @@ async def process_commands():
         HEARTBEATS_UNTIL_DEAD,
         SESSION_DISCONNECT_GRACE_MS,
     )
+    assert CLIENT_TRANSPORT_ID
+    assert SERVER_TRANSPORT_ID
     client = Client(
         uri,
         client_id=CLIENT_TRANSPORT_ID,
@@ -140,47 +141,48 @@ async def handle_watch(
     id_: str,
     k: str,
     test_client: TestCient,
-):
+) -> None:
     try:
         async for v in await test_client.kv.watch(KvWatchInput(k=k)):
             if isinstance(v, KvWatchOutput):
                 print(f"{id_} -- ok:{v.v}")
             else:
                 print(f"{id_} -- err:{v.code}")
-    except Exception as e:
+    except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
-async def handle_upload(id_: str, test_client: TestCient):
-    async def upload_iterator() -> AsyncIterator[str]:
+async def handle_upload(id_: str, test_client: TestCient) -> None:
+    async def upload_iterator() -> AsyncIterator[UploadSendInput]:
         while True:
             item = await input_streams[id_].get()
             if item == "EOF":  # Use a special EOF marker to break the loop
                 break
             yield UploadSendInput(part=item)
 
-    async def print_result(result):
+    async def print_result(result: UploadSendOutput | RiverError) -> None:
         if isinstance(result, UploadSendOutput):
             print(f"{id_} -- ok:{result.doc}")
         else:  # Assuming this handles both RiverError and exceptions
             print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+        return
 
     try:
         result = await test_client.upload.send(upload_iterator())
         await print_result(result)
-    except Exception as e:
+    except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
-async def handle_echo(id_: str, test_client: TestCient):
-    async def upload_iterator() -> AsyncIterator[str]:
+async def handle_echo(id_: str, test_client: TestCient) -> None:
+    async def upload_iterator() -> AsyncIterator[RepeatEchoInput]:
         while True:
             item = await input_streams[id_].get()
             if item == "EOF":  # Use a special EOF marker to break the loop
                 break
             yield RepeatEchoInput(str=item)
 
-    def print_result(result):
+    def print_result(result: RepeatEchoOutput | RiverError) -> None:
         if isinstance(result, RepeatEchoOutput):
             print(f"{id_} -- ok:{result.out}")
         else:  # Assuming this handles both RiverError and exceptions
@@ -189,11 +191,11 @@ async def handle_echo(id_: str, test_client: TestCient):
     try:
         async for v in await test_client.repeat.echo(upload_iterator()):
             print_result(v)
-    except Exception as e:
+    except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
-async def main():
+async def main() -> None:
     await process_commands()
 
 
