@@ -306,12 +306,9 @@ async function runSuite(
           return false;
         },
         task: async (_ctx, task) => {
+          const stdout = task.stdout();
           const log = (msg: string) => {
-            if (task.task.isCompleted()) {
-              return;
-            }
-
-            task.output = msg;
+            stdout.write(msg);
           };
 
           const { clientContainers, serverContainer } = await runTest(
