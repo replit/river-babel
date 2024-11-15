@@ -11,7 +11,7 @@ from replit_river.transport_options import TransportOptions
 from websockets import Headers
 from websockets.legacy.server import HTTPResponse
 from websockets.server import serve
-from protos import service_pb2, service_pb2_grpc, service_river
+from .protos import service_pb2, service_pb2_grpc, service_river
 
 PORT = os.getenv("PORT")
 CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
@@ -49,7 +49,6 @@ class Observable(Generic[T]):
 
 
 class KvServicer(service_pb2_grpc.kvServicer):
-
     def __init__(self):
         self.kv: Dict[str, Observable[int]] = {}
 
@@ -91,7 +90,6 @@ class KvServicer(service_pb2_grpc.kvServicer):
 
 
 class UploadServicer(service_pb2_grpc.uploadServicer):
-
     async def send(
         self, request_iterator: AsyncIterator[service_pb2.UploadInput], context
     ) -> service_pb2.UploadOutput:
@@ -104,7 +102,6 @@ class UploadServicer(service_pb2_grpc.uploadServicer):
 
 
 class RepeatServicer(service_pb2_grpc.repeatServicer):
-
     async def echo(
         self, request_iterator: AsyncIterator[service_pb2.EchoInput], context
     ) -> AsyncIterator[service_pb2.EchoOutput]:

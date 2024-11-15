@@ -7,6 +7,10 @@ name = "river-python-test"
 version = "1.0.0"
 description = "River toolkit for Python"
 authors = ["Replit <eng@replit.com>"]
+packages = [
+    { include = "river_python_test", from = "src" },
+]
+
 
 [tool.poetry.scripts]
 river-codegen-py = "river.codegen:run"

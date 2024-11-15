@@ -8,11 +8,10 @@ RUN pip install poetry==1.6.1 && poetry config virtualenvs.create false
 
 COPY pyproject.toml .
 COPY poetry.lock .
-COPY ./river-python /usr/src/river/river-python
+COPY river-python river-python
+COPY src src
 
 RUN poetry install
 
-COPY . .
-
 # bash is required for "time" in python:3.11-slim-bookworm
-CMD ["bash", "-c", "time timeout 120 poetry run python server.py --log-cli-level=debug"]
+CMD ["bash", "-c", "time timeout 120 poetry run python -u -m river_python_test.server --log-cli-level=debug"]

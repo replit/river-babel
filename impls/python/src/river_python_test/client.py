@@ -10,7 +10,7 @@ from replit_river import (
 )
 from replit_river.task_manager import BackgroundTaskManager
 from websockets import connect
-from protos.client_schema import (
+from .protos.client_schema import (
     KvSetInput,
     KvWatchInput,
     KvWatchOutput,
@@ -152,7 +152,6 @@ async def handle_watch(
 
 
 async def handle_upload(id_: str, test_client: TestCient):
-
     async def upload_iterator() -> AsyncIterator[str]:
         while True:
             item = await input_streams[id_].get()
@@ -174,7 +173,6 @@ async def handle_upload(id_: str, test_client: TestCient):
 
 
 async def handle_echo(id_: str, test_client: TestCient):
-
     async def upload_iterator() -> AsyncIterator[str]:
         while True:
             item = await input_streams[id_].get()

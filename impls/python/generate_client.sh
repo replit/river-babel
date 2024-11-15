@@ -1,12 +1,12 @@
 poetry run python -m grpc_tools.protoc \
-  --proto_path=./ \
-  --python_out=./ \
-  --mypy_out=./ \
-  --grpc_python_out=./ \
-  --mypy_grpc_out=./ \
-  ./protos/service.proto
+  --proto_path=./src \
+  --python_out=./src \
+  --mypy_out=./src \
+  --grpc_python_out=./src \
+  --mypy_grpc_out=./src \
+  ./src/river_python_test/protos/service.proto
 
-poetry run python -m river.codegen server --output ./protos ./protos/service.proto 
-poetry run python -m river.codegen client --output ./protos/client_schema.py --client-name TestCient ./schema.json
+poetry run python -m river.codegen server --output ./src/protos ./src/river_python_test/protos/service.proto
+poetry run python -m river.codegen client --output ./src/protos/client_schema.py --client-name TestCient ./src/schema.json
 
 echo "Completed"
