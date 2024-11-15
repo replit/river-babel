@@ -2,7 +2,6 @@ import http
 import logging
 import os
 from typing import (
-    Any,
     AsyncIterator,
     Awaitable,
     Callable,
@@ -39,9 +38,11 @@ logging.basicConfig(
 
 
 class Observable(Generic[T]):
+    value: T
+
     def __init__(self, initial_value: T):
         self.value = initial_value
-        self.listeners: list = []
+        self.listeners: list[Callable[[T], Awaitable[None]]] = []
 
     def get(self) -> T:
         return self.value
@@ -56,7 +57,7 @@ class Observable(Generic[T]):
         self, listener: Callable[[T], Awaitable[None]]
     ) -> Callable[[], None]:
         self.listeners.append(listener)
-        await listener(self.get())  # Initial call for the current value
+        listener(self.get())  # Initial call for the current value
         return lambda: self.listeners.remove(listener)
 
 
