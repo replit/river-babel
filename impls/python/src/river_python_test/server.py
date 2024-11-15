@@ -57,7 +57,7 @@ class Observable(Generic[T]):
         self, listener: Callable[[T], Awaitable[None]]
     ) -> Callable[[], None]:
         self.listeners.append(listener)
-        listener(self.get())  # Initial call for the current value
+        await listener(self.get())  # Initial call for the current value
         return lambda: self.listeners.remove(listener)
 
 
