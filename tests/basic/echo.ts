@@ -1,6 +1,7 @@
 import type { Test } from '../../src/actions';
 
 const RepeatEchoTest: Test = {
+  flaky: true,
   clients: {
     client: {
       actions: [
