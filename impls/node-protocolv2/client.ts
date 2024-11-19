@@ -7,6 +7,7 @@ import { createClient, type Result, type WriteStream } from 'protocolv2';
 import type { TransportOptions } from 'protocolv2/transport';
 import { BinaryCodec } from 'protocolv2/codec';
 import type { serviceDefs } from './serviceDefs';
+import assert from 'node:assert';
 
 const {
   PORT,
@@ -70,26 +71,38 @@ const handles = new Map<
 >();
 
 for await (const line of rl) {
-  const match = line.match(
-    /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
-  );
-  if (!match || !match.groups) {
-    console.error('FATAL: invalid command', line);
-    process.exit(1);
-  }
+  const { id, init, payload, proc } = (() => {
+    try {
+      return JSON.parse(line);
+    } catch (e) {
+      // Sometimes docker injects this into the stream:
+      // {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
+      const match = e.message.match(/line (\d*) column (\d*)/);
+      if (!!match) {
+        const offset = parseInt(match['2'], 10);
+        const first = JSON.parse(line.substring(0, offset));
+        assert(
+          'hijack' in first,
+          'The only syntax errors that we expect are that Docker jams stuff into the stream',
+        );
+        return JSON.parse(line.substring(offset));
+      }
+    }
+  })();
 
-  const { id, svc, proc, payload } = match.groups;
-  if (svc === 'kv') {
-    if (proc === 'set') {
-      const [k, v] = payload.split(' ');
+  switch (proc) {
+    case 'kv.set': {
+      const { k, v } = payload;
       const res = await client.kv.set.rpc({ k, v: parseInt(v) });
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
       } else {
         console.log(`${id} -- err:${res.payload.code}`);
       }
-    } else if (proc === 'watch') {
-      const res = client.kv.watch.subscribe({ k: payload });
+    }
+    case 'kv.watch': {
+      const { k } = payload;
+      const res = client.kv.watch.subscribe({ k });
       (async () => {
         for await (const v of res) {
           if (v.ok) {
@@ -100,8 +113,7 @@ for await (const line of rl) {
         }
       })();
     }
-  } else if (svc === 'repeat') {
-    if (proc === 'echo') {
+    case 'repeat.echo': {
       const handle = handles.get(id);
       if (!handle) {
         const [writer, reader] = client.repeat.echo.stream({});
@@ -117,13 +129,19 @@ for await (const line of rl) {
 
         handles.set(id, { writer: writer });
       } else {
-        handle.writer.write({ str: payload });
+        const { s } = payload;
+        handle.writer.write({ str: s });
       }
-    } else if (proc === 'echo_prefix') {
+    }
+    case 'repeat.echo_prefix': {
       const handle = handles.get(id);
       if (!handle) {
+        assert(
+          init !== undefined,
+          'Expected to find "init" in the first message',
+        );
         const [writer, reader] = await client.repeat.echo_prefix.stream({
-          prefix: payload,
+          prefix: init.prefix,
         });
         (async () => {
           for await (const v of reader) {
@@ -137,28 +155,29 @@ for await (const line of rl) {
 
         handles.set(id, { writer });
       } else {
-        handle.writer.write({ str: payload });
+        const { str } = payload;
+        handle.writer.write({ str });
       }
     }
-  } else if (svc === 'upload') {
-    if (proc === 'send') {
+    case 'upload.send': {
       const handle = handles.get(id);
       if (!handle) {
         const [writer, finalize] = client.upload.send.upload({});
 
-        if (payload !== '') {
+        if (!!payload && 'part' in payload) {
           // For UploadNoInit
-          writer.write({ part: payload });
+          writer.write({ part: payload['part'] });
         }
 
         handles.set(id, { writer, finalize });
       } else {
+        const { part } = payload;
         if (!handle.writer.isClosed()) {
-          handle.writer.write({ part: payload });
+          handle.writer.write({ part });
         }
 
         if (
-          payload === 'EOF' ||
+          part === 'EOF' ||
           // the closed condition will always lead to UNEXPECTED_DISCONNECT
           // returned from finalize we do this to match other implementation
           handle.writer.isClosed()
