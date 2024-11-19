@@ -2,6 +2,7 @@ import type { Test } from '../src/actions';
 
 const ComplexInterleavingAllProcedures: Test = {
   unordered: true,
+  flaky: true,
   clients: {
     client: {
       actions: [

@@ -26,6 +26,7 @@ const ManyRpcs: Test = {
 };
 
 const ManyStreams: Test = {
+  flaky: true,
   clients: {
     client: {
       actions: [

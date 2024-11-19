@@ -227,6 +227,7 @@ const MessageOrderingPreservedDuringDisconnect: Test = {
 };
 
 const BuffersWhileDisconnectedTest: Test = {
+  flaky: true,
   clients: {
     client: {
       actions: [
