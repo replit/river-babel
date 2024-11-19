@@ -17,7 +17,7 @@ river-codegen-py = "river.codegen:run"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-replit_river = {path = "./river-python", develop = true}
+replit_river = "0.8.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
