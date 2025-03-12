@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "json-schema-to-typescript": "^13.1.2",
-    "protocolv2": "npm:@replit/river@^0.200.0-rc.6",
+    "protocolv2": "npm:@replit/river@^0.204.0",
     "ws": "^8.17.1"
   },
   "devDependencies": {
