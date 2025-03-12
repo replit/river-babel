@@ -34,10 +34,10 @@ const KVService = ServiceSchema.define(
   },
   {
     set: Procedure.rpc({
-      init: Type.Object({ k: Type.String(), v: Type.Number() }),
-      output: Type.Object({ v: Type.Number() }),
-      errors: Type.Never(),
-      async handler(ctx, { k, v }) {
+      requestInit: Type.Object({ k: Type.String(), v: Type.Number() }),
+      responseData: Type.Object({ v: Type.Number() }),
+      responseError: Type.Never(),
+      async handler({ ctx, reqInit: { k, v } }) {
         let observable = ctx.state.kv.get(k);
         if (!observable) {
           observable = new Observable(v);
@@ -49,26 +49,26 @@ const KVService = ServiceSchema.define(
       },
     }),
     watch: Procedure.subscription({
-      init: Type.Object({ k: Type.String() }),
-      output: Type.Object({ v: Type.Number() }),
-      errors: Type.Object({
+      requestInit: Type.Object({ k: Type.String() }),
+      responseData: Type.Object({ v: Type.Number() }),
+      responseError: Type.Object({
         code: Type.Literal('NOT_FOUND'),
         message: Type.String(),
       }),
-      async handler(ctx, { k }, out) {
+      async handler({ ctx, reqInit: { k }, resWritable }) {
         const observable = ctx.state.kv.get(k);
         if (!observable) {
-          out.write(
+          resWritable.write(
             Err({
               code: 'NOT_FOUND',
               message: `key ${k} wasn't found`,
             }),
           );
-          out.close();
+          resWritable.close();
           return;
         }
 
-        observable.observe((v) => out.write(Ok({ v })));
+        observable.observe((v) => resWritable.write(Ok({ v })));
       },
     }),
   },
@@ -76,32 +76,32 @@ const KVService = ServiceSchema.define(
 
 const EchoService = ServiceSchema.define({
   echo: Procedure.stream({
-    init: Type.Object({}),
-    input: Type.Object({ str: Type.String() }),
-    output: Type.Object({ out: Type.String() }),
-    errors: Type.Never(),
-    async handler(_ctx, _init, input, output) {
-      for await (const res of input) {
+    requestInit: Type.Object({}),
+    requestData: Type.Object({ str: Type.String() }),
+    responseData: Type.Object({ out: Type.String() }),
+    responseError: Type.Never(),
+    async handler({ reqReadable, resWritable }) {
+      for await (const res of reqReadable) {
         if (!res.ok) {
           throw new Error('failed');
         }
 
-        output.write(Ok({ out: res.payload.str }));
+        resWritable.write(Ok({ out: res.payload.str }));
       }
     },
   }),
   echo_prefix: Procedure.stream({
-    init: Type.Object({ prefix: Type.String() }),
-    input: Type.Object({ str: Type.String() }),
-    output: Type.Object({ out: Type.String() }),
-    errors: Type.Never(),
-    async handler(_ctx, { prefix }, input, output) {
-      for await (const res of input) {
+    requestInit: Type.Object({ prefix: Type.String() }),
+    requestData: Type.Object({ str: Type.String() }),
+    responseData: Type.Object({ out: Type.String() }),
+    responseError: Type.Never(),
+    async handler({ reqInit: { prefix }, reqReadable, resWritable }) {
+      for await (const res of reqReadable) {
         if (!res.ok) {
           throw new Error('failed');
         }
 
-        output.write(Ok({ out: prefix + res.payload.str }));
+        resWritable.write(Ok({ out: prefix + res.payload.str }));
       }
     },
   }),
@@ -109,16 +109,16 @@ const EchoService = ServiceSchema.define({
 
 const UploadService = ServiceSchema.define({
   send: Procedure.upload({
-    init: Type.Object({}),
-    input: Type.Object({
+    requestInit: Type.Object({}),
+    requestData: Type.Object({
       part: Type.Union([Type.String(), Type.Literal('EOF')]),
     }),
-    output: Type.Object({ doc: Type.String() }),
-    errors: Type.Never(),
-    async handler(_ctx, _init, input) {
+    responseData: Type.Object({ doc: Type.String() }),
+    responseError: Type.Never(),
+    async handler({ reqReadable }) {
       let doc = '';
 
-      for await (const res of input) {
+      for await (const res of reqReadable) {
         if (!res.ok) {
           throw new Error('failed');
         }
