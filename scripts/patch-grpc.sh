@@ -27,7 +27,7 @@ grpc_experimental() {
   git grep --name-only grpc.experimental | while read generated; do
     if ! grep --silent 'import grpc.experimental' "${generated}"; then
       echo "Patching grpc.experimental in ${generated}" >&2
-      perl -i -p0e 's~^(import grpc)$~$1\n$1.experimental~m' "${generated}"
+      perl -i -p0e 's~^(import grpc)$~$1\n$1.experimental  # type: ignore~m' "${generated}"
     fi
   done
 }
@@ -76,8 +76,15 @@ ignore_service_context() {
   git grep --name-only 'river\.[a-z]*_method_handler' | while read generated; do
     echo "Patching river.*_method_handler in ${generated}" >&2
     # Perl because multiline regex
-    perl -i -p0e 's~(river\.(:?rpc|stream|subscription|upload)_method_handler\(\n[^\n,#]*,)~$1  # type: ignore~gs' \
+    perl -i -p0e 's~(river\.(:?rpc|stream|subscription|upload)_method_handler\(\n[^\n,#]*,)\n~$1  # type: ignore\n~gs' \
       "${generated}"
+  done
+}
+
+ignore_grpc_utilities() {
+  git grep --name-only 'from grpc._utilities[^#]*$' | while read generated; do
+    echo "Patching grpc._utilities in ${generated}" >&2
+    perl -i -p0e 's~(from grpc._utilities[^#\n]*)$~$1  # type: ignore~m' "${generated}"
   done
 }
 
@@ -86,3 +93,4 @@ runtime_version
 maybe_async_generator
 multi_callable_args
 ignore_service_context
+ignore_grpc_utilities
