@@ -15,6 +15,7 @@
         nodePackages.typescript-language-server
         python3
         poetry
+        uv
       ];
     };
   in
