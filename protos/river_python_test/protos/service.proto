@@ -1,0 +1,45 @@
+
+
+syntax = "proto3";
+
+// import "google/protobuf/timestamp.proto";
+
+package replit.river.test;
+
+message KVRequest {
+  string k = 1;
+  float v = 2;
+}
+
+message KVResponse {
+  float v = 1;
+}
+
+message EchoInput {
+  string str = 1;
+}
+
+message EchoOutput {
+  string out = 1;
+}
+
+message UploadInput {
+  string part = 1;
+}
+
+message UploadOutput {
+  string doc = 1;
+}
+
+service kv {
+  rpc set (KVRequest) returns (KVResponse);
+  rpc watch (KVRequest) returns (stream KVResponse);
+}
+
+service repeat {
+  rpc echo (stream EchoInput) returns (stream EchoOutput);
+}
+
+service upload {
+  rpc send (stream UploadInput) returns (UploadOutput);
+}
