@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ["impls/python/.venv/**"]
+    ignores: ["impls/**"]
   },
   eslint.configs.recommended,
   ...tseslint.configs.strict,

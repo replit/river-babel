@@ -36,6 +36,7 @@ export interface ContainerHandle {
   stdin: NodeJS.WritableStream;
   stdout: Promise<string>;
   stderr: Promise<string>;
+  hostPortMapping: Record<string, string>;
 }
 
 export type ClientContainer = {
@@ -221,6 +222,24 @@ function stderrStreamToString(stream: NodeJS.WritableStream): Promise<string> {
   });
 }
 
+async function getPortMapping(
+  container: Docker.Container,
+): Promise<Record<string, string>> {
+  const inspectResult = await container.inspect();
+  return Object.entries(inspectResult.NetworkSettings.Ports).reduce(
+    (cur, [_port, bindings]) => {
+      const [port, proto] = _port.split('/', 2);
+      if (proto === 'tcp') {
+        for (const { HostPort } of bindings) {
+          cur[port] = HostPort;
+        }
+      }
+      return cur;
+    },
+    {} as Record<string, string>,
+  );
+}
+
 export async function setupContainer(
   testId: string,
   clientImpl: string,
@@ -259,6 +278,9 @@ export async function setupContainer(
     HostConfig: {
       NetworkMode: network.id,
       AutoRemove: false,
+      PortBindings: {
+        '8080/tcp': [],
+      },
     },
     AttachStdin: true,
     AttachStderr: true,
@@ -279,6 +301,9 @@ export async function setupContainer(
   container ??= docker.getContainer(containerId);
   await container.start();
   const [stdin, stdout, stderr] = await containerStreams(container);
+
+  const hostPortMapping: Record<string, string> =
+    await getPortMapping(container);
 
   const removeContainerIfExists = async () => {
     stdout.end();
@@ -330,7 +355,7 @@ export async function setupContainer(
 
   // warm up the container. wait 10s until we get at least one good result back.
   if (type === 'server') {
-    healthCheck(container, network);
+    await healthCheck(container, network, hostPortMapping);
   }
   const responses: Pushable<{
     id: string;
@@ -349,10 +374,15 @@ export async function setupContainer(
       responses.end();
     },
     syncBarriers: {},
+    hostPortMapping,
   };
 }
 
-async function healthCheck(container: Container, network: Network) {
+async function healthCheck(
+  container: Container,
+  network: Network,
+  hostPortMapping: Record<string, string>,
+) {
   for (let remaining = 100; remaining >= 0; remaining--) {
     try {
       const networkInfo: NetworkInspectInfo = await network.inspect();
@@ -367,13 +397,21 @@ async function healthCheck(container: Container, network: Network) {
         throw new Error('Container not found in network');
       }
 
-      const ipAddressWithSubnet = networkContainer.IPv4Address;
-      const [ip] = ipAddressWithSubnet.split('/');
-
-      const address = `http://${ip}:8080/healthz`;
+      const address = `http://localhost:${hostPortMapping['8080']}/healthz`;
 
       // We just need for the fetch to give us something that looks like HTTP back.
-      await fetch(address, { headers: { Connection: 'close' } });
+      const res = await fetch(address, { headers: { Connection: 'close' } });
+      let body = '';
+      if (res.body) {
+        const decoder = new TextDecoder();
+        for await (const chunk of res.body) {
+          // Do something with each chunk
+          // Here we just accumulate the size of the response.
+          body += decoder.decode(chunk);
+        }
+      }
+      console.info('Healthcheck with', remaining, 'request(s) left:', body);
+
       break;
     } catch (err) {
       if (remaining === 0) {
@@ -448,7 +486,17 @@ export async function applyActionServer(
 ) {
   await applyActionCommon(network, containerHandle, action, log);
   if (action.type == 'restart_container') {
-    healthCheck(containerHandle.container, network);
+    // After the server has been restarted, the port mapping will need to be rediscovered:
+    const hostPortMapping: Record<string, string> = await getPortMapping(
+      containerHandle.container,
+    );
+    containerHandle.hostPortMapping = hostPortMapping;
+
+    await healthCheck(
+      containerHandle.container,
+      network,
+      containerHandle.hostPortMapping,
+    );
   }
 }
 
