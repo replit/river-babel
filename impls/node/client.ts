@@ -6,6 +6,7 @@ import type { TransportOptions } from '@replit/river/transport';
 import { BinaryCodec } from '@replit/river/codec';
 import type { serviceDefs } from './serviceDefs';
 import type { Pushable } from 'it-pushable';
+import assert from 'node:assert';
 
 const {
   PORT,
@@ -60,26 +61,41 @@ const rl = readline.createInterface({
 
 const handles = new Map<string, Pushable<unknown>>();
 for await (const line of rl) {
-  const match = line.match(
-    /(?<id>\w+) -- (?<svc>\w+)\.(?<proc>\w+) -> ?(?<payload>.*)/,
-  );
-  if (!match || !match.groups) {
-    console.error('FATAL: invalid command', line);
-    process.exit(1);
-  }
+  const { id, init, payload, proc } = (() => {
+    try {
+      return JSON.parse(line);
+    } catch (e: any) {
+      // Sometimes docker injects this into the stream:
+      // {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
+      const match = e.message.match(/line (\d*) column (\d*)/);
+      if (!!match) {
+        const offset = parseInt(match['2'], 10);
+        const first = JSON.parse(line.substring(0, offset));
+        assert(
+          'hijack' in first,
+          'The only syntax errors that we expect are that Docker jams stuff into the stream',
+        );
+        return JSON.parse(line.substring(offset));
+      } else {
+        throw `Here we are: ${e}`;
+      }
+    }
+  })();
 
-  const { id, svc, proc, payload } = match.groups;
-  if (svc === 'kv') {
-    if (proc === 'set') {
-      const [k, v] = payload.split(' ');
+  switch (proc) {
+    case 'kv.set': {
+      const { k, v } = payload;
       const res = await client.kv.set.rpc({ k, v: parseInt(v) });
       if (res.ok) {
         console.log(`${id} -- ok:${res.payload.v}`);
       } else {
         console.log(`${id} -- err:${res.payload.code}`);
       }
-    } else if (proc === 'watch') {
-      const [res] = await client.kv.watch.subscribe({ k: payload });
+      break;
+    }
+    case 'kv.watch': {
+      const { k } = payload;
+      const [res] = await client.kv.watch.subscribe({ k });
       (async () => {
         for await (const v of res) {
           if (v.ok) {
@@ -89,10 +105,11 @@ for await (const line of rl) {
           }
         }
       })();
+      break;
     }
-  } else if (svc === 'repeat') {
-    if (proc === 'echo') {
+    case 'repeat.echo': {
       if (!handles.has(id)) {
+        // init
         const [input, output] = await client.repeat.echo.stream();
         (async () => {
           for await (const v of output) {
@@ -106,12 +123,19 @@ for await (const line of rl) {
 
         handles.set(id, input);
       } else {
-        handles.get(id)!.push({ str: payload });
+        const { s } = payload;
+        handles.get(id)!.push({ str: s });
       }
-    } else if (proc === 'echo_prefix') {
+      break;
+    }
+    case 'repeat.echo_prefix': {
       if (!handles.has(id)) {
+        assert(
+          init !== undefined,
+          'Expected to find "init" in the first message',
+        );
         const [input, output] = await client.repeat.echo_prefix.stream({
-          prefix: payload,
+          prefix: init.prefix,
         });
         (async () => {
           for await (const v of output) {
@@ -125,17 +149,18 @@ for await (const line of rl) {
 
         handles.set(id, input);
       } else {
-        handles.get(id)!.push({ str: payload });
+        const { str } = payload;
+        handles.get(id)!.push({ str });
       }
+      break;
     }
-  } else if (svc === 'upload') {
-    if (proc === 'send') {
+    case 'upload.send': {
       if (!handles.has(id)) {
         const [input, res] = await client.upload.send.upload();
 
-        if (payload !== '') {
+        if (!!payload && 'part' in payload) {
           // For UploadNoInit
-          input.push({ part: payload });
+          input.push({ part: payload.part });
         }
 
         handles.set(id, input);
@@ -149,8 +174,10 @@ for await (const line of rl) {
           }
         })();
       } else {
-        handles.get(id)!.push({ part: payload });
+        const { part } = payload;
+        handles.get(id)!.push({ part });
       }
+      break;
     }
   }
 }

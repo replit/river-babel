@@ -97,36 +97,6 @@ export type InvokeAction =
       payload: { part: string };
     };
 
-export function serializeInvokeAction(action: InvokeAction) {
-  let payload = '';
-  if (action.proc === 'kv.set') {
-    payload = `${action.payload.k} ${action.payload.v}`;
-  } else if (action.proc === 'kv.watch') {
-    payload = action.payload.k;
-  } else if (action.proc === 'repeat.echo') {
-    if ('init' in action) {
-      payload = '';
-    } else {
-      payload = action.payload.s;
-    }
-  } else if (action.proc === 'repeat.echo_prefix') {
-    if ('init' in action) {
-      payload = action.init.prefix;
-    } else {
-      payload = action.payload.str;
-    }
-  } else if (action.proc === 'upload.send') {
-    if ('init' in action) {
-      payload = '';
-    } else {
-      payload = action.payload.part;
-    }
-  }
-
-  const serialized = `${action.id} -- ${action.proc} -> ${payload}`;
-  return serialized;
-}
-
 export interface ExpectedOutputEntry {
   id: string;
   status: 'ok' | 'err';
