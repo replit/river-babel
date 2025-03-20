@@ -400,7 +400,18 @@ async function healthCheck(
       const address = `http://localhost:${hostPortMapping['8080']}/healthz`;
 
       // We just need for the fetch to give us something that looks like HTTP back.
-      await fetch(address, { headers: { Connection: 'close' } });
+      const res = await fetch(address, { headers: { Connection: 'close' } });
+      let body = '';
+      if (res.body) {
+        const decoder = new TextDecoder();
+        for await (const chunk of res.body) {
+          // Do something with each chunk
+          // Here we just accumulate the size of the response.
+          body += decoder.decode(chunk);
+        }
+      }
+      console.info('Healthcheck with', remaining, 'request(s) left:', body);
+
       break;
     } catch (err) {
       if (remaining === 0) {
