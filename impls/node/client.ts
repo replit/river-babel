@@ -1,12 +1,12 @@
+import assert from 'node:assert';
+import readline from 'node:readline';
+import type { Pushable } from 'it-pushable';
+import type { TransportOptions } from '@replit/river/transport';
+import type { serviceDefs } from './serviceDefs';
+import { BinaryCodec } from '@replit/river/codec';
 import { WebSocket } from 'ws';
 import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
-import readline from 'node:readline';
-import { createClient, type Server } from '@replit/river';
-import type { TransportOptions } from '@replit/river/transport';
-import { BinaryCodec } from '@replit/river/codec';
-import type { serviceDefs } from './serviceDefs';
-import type { Pushable } from 'it-pushable';
-import assert from 'node:assert';
+import { createClient } from '@replit/river';
 
 const {
   PORT,
@@ -64,11 +64,14 @@ for await (const line of rl) {
   const { id, init, payload, proc } = (() => {
     try {
       return JSON.parse(line);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      if (!e || !(e instanceof Error)) {
+        throw e;
+      }
       // Sometimes docker injects this into the stream:
       // {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
       const match = e.message.match(/line (\d*) column (\d*)/);
-      if (!!match) {
+      if (match) {
         const offset = parseInt(match['2'], 10);
         const first = JSON.parse(line.substring(0, offset));
         assert(
@@ -96,7 +99,7 @@ for await (const line of rl) {
     case 'kv.watch': {
       const { k } = payload;
       const [res] = await client.kv.watch.subscribe({ k });
-      (async () => {
+      void (async () => {
         for await (const v of res) {
           if (v.ok) {
             console.log(`${id} -- ok:${v.payload.v}`);
@@ -108,10 +111,11 @@ for await (const line of rl) {
       break;
     }
     case 'repeat.echo': {
-      if (!handles.has(id)) {
+      const handle = handles.get(id);
+      if (!handle) {
         // init
         const [input, output] = await client.repeat.echo.stream();
-        (async () => {
+        void (async () => {
           for await (const v of output) {
             if (v.ok) {
               console.log(`${id} -- ok:${v.payload.out}`);
@@ -124,12 +128,13 @@ for await (const line of rl) {
         handles.set(id, input);
       } else {
         const { s } = payload;
-        handles.get(id)!.push({ str: s });
+        handle.push({ str: s });
       }
       break;
     }
     case 'repeat.echo_prefix': {
-      if (!handles.has(id)) {
+      const handle = handles.get(id);
+      if (!handle) {
         assert(
           init !== undefined,
           'Expected to find "init" in the first message',
@@ -137,7 +142,7 @@ for await (const line of rl) {
         const [input, output] = await client.repeat.echo_prefix.stream({
           prefix: init.prefix,
         });
-        (async () => {
+        void (async () => {
           for await (const v of output) {
             if (v.ok) {
               console.log(`${id} -- ok:${v.payload.out}`);
@@ -150,12 +155,13 @@ for await (const line of rl) {
         handles.set(id, input);
       } else {
         const { str } = payload;
-        handles.get(id)!.push({ str });
+        handle.push({ str });
       }
       break;
     }
     case 'upload.send': {
-      if (!handles.has(id)) {
+      const handle = handles.get(id);
+      if (!handle) {
         const [input, res] = await client.upload.send.upload();
 
         if (!!payload && 'part' in payload) {
@@ -165,7 +171,7 @@ for await (const line of rl) {
 
         handles.set(id, input);
 
-        (async () => {
+        void (async () => {
           const final = await res;
           if (final.ok) {
             console.log(`${id} -- ok:${final.payload.doc}`);
@@ -175,7 +181,7 @@ for await (const line of rl) {
         })();
       } else {
         const { part } = payload;
-        handles.get(id)!.push({ part });
+        handle.push({ part });
       }
       break;
     }

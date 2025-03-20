@@ -1,13 +1,13 @@
 /** @format */
-
-import { WebSocket } from 'ws';
-import { WebSocketClientTransport } from 'protocolv2/transport/ws/client';
 import readline from 'node:readline';
-import { createClient, type Result, type Writable } from 'protocolv2';
-import type { TransportOptions } from 'protocolv2/transport';
-import { BinaryCodec } from 'protocolv2/codec';
+
+import type { TransportOptions } from '@replit/river/transport';
 import type { serviceDefs } from './serviceDefs';
 import assert from 'node:assert';
+import { BinaryCodec } from '@replit/river/codec';
+import { WebSocket } from 'ws';
+import { WebSocketClientTransport } from '@replit/river/transport/ws/client';
+import { createClient, type Result, type Writable } from '@replit/river';
 
 const {
   PORT,
@@ -66,7 +66,9 @@ const handles = new Map<
   {
     writer: Writable<unknown>;
     // upload has a finalize function
-    finalize?: () => Promise<Result<any, { code: string; message: string }>>;
+    finalize?: () => Promise<
+      Result<{ doc?: string }, { code: string; message: string }>
+    >;
   }
 >();
 
@@ -74,11 +76,14 @@ for await (const line of rl) {
   const { id, init, payload, proc } = (() => {
     try {
       return JSON.parse(line);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      if (!e || !(e instanceof Error)) {
+        throw e;
+      }
       // Sometimes docker injects this into the stream:
       // {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
       const match = e.message.match(/line (\d*) column (\d*)/);
-      if (!!match) {
+      if (match) {
         const offset = parseInt(match['2'], 10);
         const first = JSON.parse(line.substring(0, offset));
         assert(
@@ -106,7 +111,7 @@ for await (const line of rl) {
     case 'kv.watch': {
       const { k } = payload;
       const res = client.kv.watch.subscribe({ k });
-      (async () => {
+      void (async () => {
         for await (const v of res.resReadable) {
           if (v.ok) {
             console.log(`${id} -- ok:${v.payload.v}`);
@@ -121,7 +126,7 @@ for await (const line of rl) {
       const handle = handles.get(id);
       if (!handle) {
         const { reqWritable, resReadable } = client.repeat.echo.stream({});
-        (async () => {
+        void (async () => {
           for await (const v of resReadable) {
             if (v.ok) {
               console.log(`${id} -- ok:${v.payload.out}`);
@@ -144,7 +149,7 @@ for await (const line of rl) {
         const { reqWritable, resReadable } = client.repeat.echo_prefix.stream({
           prefix: init.prefix,
         });
-        (async () => {
+        void (async () => {
           for await (const v of resReadable) {
             if (v.ok) {
               console.log(`${id} -- ok:${v.payload.out}`);

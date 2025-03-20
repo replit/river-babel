@@ -2,12 +2,12 @@ import asyncio
 import json
 import logging
 import os
-import re
 import sys
 from typing import AsyncIterator, Dict
 
 from replit_river import (
     Client,
+    RiverError,
 )
 from replit_river.error_schema import RiverError
 from .protos.client_schema import (
@@ -20,7 +20,7 @@ from .protos.client_schema import (
     UploadSendInput,
     UploadSendOutput,
 )
-from replit_river.transport_options import TransportOptions
+from replit_river.transport_options import TransportOptions, UriAndMetadata
 
 # Load environment variables
 PORT = os.getenv("PORT")
@@ -51,10 +51,17 @@ async def process_commands() -> None:
         HEARTBEATS_UNTIL_DEAD,
         SESSION_DISCONNECT_GRACE_MS,
     )
+
+    async def get_connection_metadata() -> UriAndMetadata[None]:
+        return {
+            "uri": uri,
+            "metadata": None,
+        }
+
     assert CLIENT_TRANSPORT_ID
     assert SERVER_TRANSPORT_ID
     client = Client(
-        uri,
+        get_connection_metadata,
         client_id=CLIENT_TRANSPORT_ID,
         server_id=SERVER_TRANSPORT_ID,
         transport_options=TransportOptions(
