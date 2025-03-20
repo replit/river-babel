@@ -84,6 +84,7 @@ process
   });
 
 process.on('SIGINT', async () => {
+  console.error(chalk.red('SIGINT'));
   await cleanup();
   process.exit(1);
 });
@@ -273,7 +274,7 @@ async function runSuite(
 
   const suiteStart = new Date();
 
-  console.log('Starting Tests');
+  console.log(`Starting ${tests.length} Test(s)`);
   console.log('Client:', clientImpl, 'Server:', serverImpl);
   console.log(chalk.reset());
 
@@ -435,26 +436,34 @@ ${Array.from(testsFailed)
   return testsFailed.size;
 }
 
-// run the test suite with specific ignore lists
-const ignoreLists: Record<string, Test[]> = {
-  python: [EchoTests.RepeatEchoPrefixTest],
-};
+async function main(): Promise<void> {
+  // run the test suite with specific ignore lists
+  const ignoreLists: Record<string, Test[]> = {
+    python: [EchoTests.RepeatEchoPrefixTest],
+  };
 
-const numFailed = await runSuite(
-  {
-    ...KvRpcTests,
-    ...EchoTests,
-    ...UploadTests,
-    ...InterleavingTests,
-    ...NetworkTests,
-    ...DisconnectNotifsTests,
-    ...VolumeTests,
-    ...InstanceMismatchTests,
-    ...v2BackwardsCompat,
-  },
-  [...(ignoreLists[clientImpl] ?? []), ...(ignoreLists[serverImpl] ?? [])],
-);
+  const numFailed = await runSuite(
+    {
+      ...KvRpcTests,
+      ...EchoTests,
+      ...UploadTests,
+      ...InterleavingTests,
+      ...NetworkTests,
+      ...DisconnectNotifsTests,
+      ...VolumeTests,
+      ...InstanceMismatchTests,
+      ...v2BackwardsCompat,
+    },
+    [...(ignoreLists[clientImpl] ?? []), ...(ignoreLists[serverImpl] ?? [])],
+  );
 
-await cleanup();
+  await cleanup();
 
-process.exit(numFailed > 0 ? 1 : 0);
+  process.exit(numFailed > 0 ? 1 : 0);
+}
+
+main().catch((error) => {
+  console.error(chalk.red('Error in main:'), error);
+});
+
+console.log('Initialization complete');
