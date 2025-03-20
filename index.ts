@@ -368,7 +368,7 @@ ${await serverContainer.stderr}
 end logs for server
 `);
 
-            log(`${!!diffMsg ? logOutput : 'SUCCESS'}
+            log(`${diffMsg ? logOutput : 'SUCCESS'}
 
 logs will be written to ${stderrLogFilePath}
 `);
