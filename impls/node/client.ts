@@ -76,6 +76,8 @@ for await (const line of rl) {
           'The only syntax errors that we expect are that Docker jams stuff into the stream',
         );
         return JSON.parse(line.substring(offset));
+      } else {
+        throw `Here we are: ${e}`;
       }
     }
   })();
