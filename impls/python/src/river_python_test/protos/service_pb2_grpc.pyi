@@ -12,13 +12,19 @@ import typing
 
 _T = typing.TypeVar("_T")
 
-class _MaybeAsyncIterator(collections.abc.AsyncIterator[_T], collections.abc.Iterator[_T], metaclass=abc.ABCMeta): ...
+class _MaybeAsyncIterator(
+    collections.abc.AsyncIterator[_T],
+    collections.abc.Iterator[_T],
+    metaclass=abc.ABCMeta,
+): ...
 
 class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
 class kvStub:
-    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    def __init__(
+        self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]
+    ) -> None: ...
     set: grpc.UnaryUnaryMultiCallable[
         river_python_test.protos.service_pb2.KVRequest,
         river_python_test.protos.service_pb2.KVResponse,
@@ -46,19 +52,28 @@ class kvServicer(metaclass=abc.ABCMeta):
         self,
         request: river_python_test.protos.service_pb2.KVRequest,
         context: _ServicerContext,
-    ) -> typing.Union[river_python_test.protos.service_pb2.KVResponse, collections.abc.Awaitable[river_python_test.protos.service_pb2.KVResponse]]: ...
-
+    ) -> typing.Union[
+        river_python_test.protos.service_pb2.KVResponse,
+        collections.abc.Awaitable[river_python_test.protos.service_pb2.KVResponse],
+    ]: ...
     @abc.abstractmethod
     def watch(
         self,
         request: river_python_test.protos.service_pb2.KVRequest,
         context: _ServicerContext,
-    ) -> typing.Union[collections.abc.Iterator[river_python_test.protos.service_pb2.KVResponse], collections.abc.AsyncIterator[river_python_test.protos.service_pb2.KVResponse]]: ...
+    ) -> typing.Union[
+        collections.abc.Iterator[river_python_test.protos.service_pb2.KVResponse],
+        collections.abc.AsyncIterator[river_python_test.protos.service_pb2.KVResponse],
+    ]: ...
 
-def add_kvServicer_to_server(servicer: kvServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
+def add_kvServicer_to_server(
+    servicer: kvServicer, server: typing.Union[grpc.Server, grpc.aio.Server]
+) -> None: ...
 
 class repeatStub:
-    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    def __init__(
+        self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]
+    ) -> None: ...
     echo: grpc.StreamStreamMultiCallable[
         river_python_test.protos.service_pb2.EchoInput,
         river_python_test.protos.service_pb2.EchoOutput,
@@ -74,14 +89,23 @@ class repeatServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def echo(
         self,
-        request_iterator: _MaybeAsyncIterator[river_python_test.protos.service_pb2.EchoInput],
+        request_iterator: _MaybeAsyncIterator[
+            river_python_test.protos.service_pb2.EchoInput
+        ],
         context: _ServicerContext,
-    ) -> typing.Union[collections.abc.Iterator[river_python_test.protos.service_pb2.EchoOutput], collections.abc.AsyncIterator[river_python_test.protos.service_pb2.EchoOutput]]: ...
+    ) -> typing.Union[
+        collections.abc.Iterator[river_python_test.protos.service_pb2.EchoOutput],
+        collections.abc.AsyncIterator[river_python_test.protos.service_pb2.EchoOutput],
+    ]: ...
 
-def add_repeatServicer_to_server(servicer: repeatServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
+def add_repeatServicer_to_server(
+    servicer: repeatServicer, server: typing.Union[grpc.Server, grpc.aio.Server]
+) -> None: ...
 
 class uploadStub:
-    def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    def __init__(
+        self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]
+    ) -> None: ...
     send: grpc.StreamUnaryMultiCallable[
         river_python_test.protos.service_pb2.UploadInput,
         river_python_test.protos.service_pb2.UploadOutput,
@@ -97,8 +121,15 @@ class uploadServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def send(
         self,
-        request_iterator: _MaybeAsyncIterator[river_python_test.protos.service_pb2.UploadInput],
+        request_iterator: _MaybeAsyncIterator[
+            river_python_test.protos.service_pb2.UploadInput
+        ],
         context: _ServicerContext,
-    ) -> typing.Union[river_python_test.protos.service_pb2.UploadOutput, collections.abc.Awaitable[river_python_test.protos.service_pb2.UploadOutput]]: ...
+    ) -> typing.Union[
+        river_python_test.protos.service_pb2.UploadOutput,
+        collections.abc.Awaitable[river_python_test.protos.service_pb2.UploadOutput],
+    ]: ...
 
-def add_uploadServicer_to_server(servicer: uploadServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
+def add_uploadServicer_to_server(
+    servicer: uploadServicer, server: typing.Union[grpc.Server, grpc.aio.Server]
+) -> None: ...

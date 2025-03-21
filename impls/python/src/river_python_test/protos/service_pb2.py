@@ -7,36 +7,39 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&river_python_test/protos/service.proto\x12\x11replit.river.test\"!\n\tKVRequest\x12\t\n\x01k\x18\x01 \x01(\t\x12\t\n\x01v\x18\x02 \x01(\x05\"\x17\n\nKVResponse\x12\t\n\x01v\x18\x01 \x01(\x05\"\x18\n\tEchoInput\x12\x0b\n\x03str\x18\x01 \x01(\t\"\x19\n\nEchoOutput\x12\x0b\n\x03out\x18\x01 \x01(\t\"\x1b\n\x0bUploadInput\x12\x0c\n\x04part\x18\x01 \x01(\t\"\x1b\n\x0cUploadOutput\x12\x0b\n\x03\x64oc\x18\x01 \x01(\t2\x90\x01\n\x02kv\x12\x42\n\x03set\x12\x1c.replit.river.test.KVRequest\x1a\x1d.replit.river.test.KVResponse\x12\x46\n\x05watch\x12\x1c.replit.river.test.KVRequest\x1a\x1d.replit.river.test.KVResponse0\x01\x32Q\n\x06repeat\x12G\n\x04\x65\x63ho\x12\x1c.replit.river.test.EchoInput\x1a\x1d.replit.river.test.EchoOutput(\x01\x30\x01\x32S\n\x06upload\x12I\n\x04send\x12\x1e.replit.river.test.UploadInput\x1a\x1f.replit.river.test.UploadOutput(\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n&river_python_test/protos/service.proto\x12\x11replit.river.test"!\n\tKVRequest\x12\t\n\x01k\x18\x01 \x01(\t\x12\t\n\x01v\x18\x02 \x01(\x05"\x17\n\nKVResponse\x12\t\n\x01v\x18\x01 \x01(\x05"\x18\n\tEchoInput\x12\x0b\n\x03str\x18\x01 \x01(\t"\x19\n\nEchoOutput\x12\x0b\n\x03out\x18\x01 \x01(\t"\x1b\n\x0bUploadInput\x12\x0c\n\x04part\x18\x01 \x01(\t"\x1b\n\x0cUploadOutput\x12\x0b\n\x03\x64oc\x18\x01 \x01(\t2\x90\x01\n\x02kv\x12\x42\n\x03set\x12\x1c.replit.river.test.KVRequest\x1a\x1d.replit.river.test.KVResponse\x12\x46\n\x05watch\x12\x1c.replit.river.test.KVRequest\x1a\x1d.replit.river.test.KVResponse0\x01\x32Q\n\x06repeat\x12G\n\x04\x65\x63ho\x12\x1c.replit.river.test.EchoInput\x1a\x1d.replit.river.test.EchoOutput(\x01\x30\x01\x32S\n\x06upload\x12I\n\x04send\x12\x1e.replit.river.test.UploadInput\x1a\x1f.replit.river.test.UploadOutput(\x01\x62\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'river_python_test.protos.service_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(
+    DESCRIPTOR, "river_python_test.protos.service_pb2", _globals
+)
 if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_KVREQUEST']._serialized_start=61
-  _globals['_KVREQUEST']._serialized_end=94
-  _globals['_KVRESPONSE']._serialized_start=96
-  _globals['_KVRESPONSE']._serialized_end=119
-  _globals['_ECHOINPUT']._serialized_start=121
-  _globals['_ECHOINPUT']._serialized_end=145
-  _globals['_ECHOOUTPUT']._serialized_start=147
-  _globals['_ECHOOUTPUT']._serialized_end=172
-  _globals['_UPLOADINPUT']._serialized_start=174
-  _globals['_UPLOADINPUT']._serialized_end=201
-  _globals['_UPLOADOUTPUT']._serialized_start=203
-  _globals['_UPLOADOUTPUT']._serialized_end=230
-  _globals['_KV']._serialized_start=233
-  _globals['_KV']._serialized_end=377
-  _globals['_REPEAT']._serialized_start=379
-  _globals['_REPEAT']._serialized_end=460
-  _globals['_UPLOAD']._serialized_start=462
-  _globals['_UPLOAD']._serialized_end=545
+    DESCRIPTOR._options = None
+    _globals["_KVREQUEST"]._serialized_start = 61
+    _globals["_KVREQUEST"]._serialized_end = 94
+    _globals["_KVRESPONSE"]._serialized_start = 96
+    _globals["_KVRESPONSE"]._serialized_end = 119
+    _globals["_ECHOINPUT"]._serialized_start = 121
+    _globals["_ECHOINPUT"]._serialized_end = 145
+    _globals["_ECHOOUTPUT"]._serialized_start = 147
+    _globals["_ECHOOUTPUT"]._serialized_end = 172
+    _globals["_UPLOADINPUT"]._serialized_start = 174
+    _globals["_UPLOADINPUT"]._serialized_end = 201
+    _globals["_UPLOADOUTPUT"]._serialized_start = 203
+    _globals["_UPLOADOUTPUT"]._serialized_end = 230
+    _globals["_KV"]._serialized_start = 233
+    _globals["_KV"]._serialized_end = 377
+    _globals["_REPEAT"]._serialized_start = 379
+    _globals["_REPEAT"]._serialized_end = 460
+    _globals["_UPLOAD"]._serialized_start = 462
+    _globals["_UPLOAD"]._serialized_end = 545
 # @@protoc_insertion_point(module_scope)
