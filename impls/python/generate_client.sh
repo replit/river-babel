@@ -30,7 +30,7 @@ uv run python -m replit_river.codegen \
 
 uv run python -m replit_river.codegen \
   client \
-    --output ./src/testservice/protos/client_schema.py \
+    --output ./src/testservice/protos \
     --client-name TestCient \
     "${REPO_ROOT_DIR}/schema.json"
 
