@@ -17,9 +17,8 @@ import replit_river as river
 import asyncio
 from replit_river.error_schema import RiverError
 from replit_river.transport_options import TransportOptions
-from websockets import Headers
-from websockets.legacy.server import HTTPResponse
-from websockets.server import serve
+from websockets import Headers, Request, Response, ServerConnection, serve
+
 from .protos import service_pb2, service_pb2_grpc, service_river
 
 PORT = os.getenv("PORT")
@@ -147,9 +146,11 @@ async def start_server() -> None:
     done: asyncio.Future[None] = asyncio.Future()
     started: asyncio.Future[None] = asyncio.Future()
 
-    async def process_request(path: str, _: Headers) -> Optional[HTTPResponse]:
-        if path == "/healthz":
-            return http.HTTPStatus.OK, [], b"OK\n"
+    async def process_request(
+        _: ServerConnection, request: Request
+    ) -> Optional[Response]:  # noqa: E501
+        if request.path == "/healthz":
+            return Response(200, "OK", Headers(), b"OK\n")
         return None
 
     async def _serve() -> None:
