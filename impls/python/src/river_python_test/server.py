@@ -63,7 +63,7 @@ class Observable(Generic[T]):
 
 class KvServicer(service_pb2_grpc.kvServicer):
     def __init__(self) -> None:
-        self.kv: Dict[str, Observable[int]] = {}
+        self.kv: Dict[str, Observable[float]] = {}
 
     async def set(
         self, request: service_pb2.KVRequest, context: ServicerContext
@@ -88,9 +88,9 @@ class KvServicer(service_pb2_grpc.kvServicer):
             return
         observable = self.kv[key]
 
-        queue = asyncio.Queue[int]()
+        queue = asyncio.Queue[float]()
 
-        async def listener(value: int) -> None:
+        async def listener(value: float) -> None:
             await queue.put(value)
 
         unsubscribe = await observable.observe(listener)

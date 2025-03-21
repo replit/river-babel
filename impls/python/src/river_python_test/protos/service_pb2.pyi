@@ -17,12 +17,12 @@ class KVRequest(google.protobuf.message.Message):
     K_FIELD_NUMBER: builtins.int
     V_FIELD_NUMBER: builtins.int
     k: builtins.str
-    v: builtins.int
+    v: builtins.float
     def __init__(
         self,
         *,
         k: builtins.str = ...,
-        v: builtins.int = ...,
+        v: builtins.float = ...,
     ) -> None: ...
     def ClearField(self, field_name: typing.Literal["k", b"k", "v", b"v"]) -> None: ...
 
@@ -33,11 +33,11 @@ class KVResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     V_FIELD_NUMBER: builtins.int
-    v: builtins.int
+    v: builtins.float
     def __init__(
         self,
         *,
-        v: builtins.int = ...,
+        v: builtins.float = ...,
     ) -> None: ...
     def ClearField(self, field_name: typing.Literal["v", b"v"]) -> None: ...
 

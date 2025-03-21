@@ -1,38 +1,36 @@
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
+[project]
 name = "river-python-test"
 version = "1.0.0"
 description = "River toolkit for Python"
-authors = ["Replit <eng@replit.com>"]
-packages = [
-    { include = "river_python_test", from = "src" },
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "replit-river==0.8.1",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
-river-codegen-py = "river.codegen:run"
+[tool.hatch.build.targets.wheel]
+packages = ["src/river_python_test"]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-replit_river = "0.8.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-mypy = "^1.4.0"
-black = ">=23.3.0"
-pytest-cov = "^4.1.0"
-ruff = "^0.0.278"
-pytest-mock = "^3.11.1"
-pytest-asyncio = "^0.21.1"
-types-protobuf = "^4.24.0.20240311"
-mypy-protobuf = "^3.5.0"
-deptry = "^0.14.0"
+[dependency-groups]
+dev = [
+    "deptry>=0.23.0",
+    "mypy>=1.15.0",
+    "mypy-protobuf>=3.6.0",
+    "pyright>=1.1.396",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.11.0",
+    "types-protobuf>=5.29.1.20250315",
+]
 
 [tool.ruff]
-select = ["F", "E", "W", "I001"]
+lint.select = ["F", "E", "W", "I001"]
 
 # Should be kept in sync with mypy.ini in the project root.
 # The VSCode mypy extension can only read /mypy.ini.
@@ -46,23 +44,23 @@ warn_return_any = true
 asyncio_mode = "auto"  # auto-detect async tests/fixtures
 addopts = "--tb=short"
 env = [
-	"DD_DOGSTATSD_DISABLE=true",
-	"DD_TRACE_ENABLED=false",
+        "DD_DOGSTATSD_DISABLE=true",
+        "DD_TRACE_ENABLED=false",
 ]
 filterwarnings = [
-	"ignore::DeprecationWarning",  # google SDKs cause this noise
+        "ignore::DeprecationWarning",  # google SDKs cause this noise
 ]
 markers = [
-	"e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+        "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
 ]
 
 [[tool.mypy.overrides]]
 module = [
-	"google.auth.*",
-	"google.oauth2.*",
-	"google.cloud.sqlalchemy_spanner.sqlalchemy_spanner.*",
-	"grpc.*",
-	"grpc_tools.*",
-	"nanoid.*",
+        "google.auth.*",
+        "google.oauth2.*",
+        "google.cloud.sqlalchemy_spanner.sqlalchemy_spanner.*",
+        "grpc.*",
+        "grpc_tools.*",
+        "nanoid.*",
 ]
 ignore_missing_imports = true

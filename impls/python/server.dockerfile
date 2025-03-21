@@ -4,13 +4,14 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /usr/src/river
 
-RUN pip install poetry==1.6.1 && poetry config virtualenvs.create false
+RUN pip install uv==0.6.8
 
 COPY pyproject.toml .
-COPY poetry.lock .
+COPY uv.lock .
+COPY README.md .
 COPY src src
 
-RUN poetry install
+RUN uv sync
 
 # bash is required for "time" in python:3.11-slim-bookworm
-CMD ["bash", "-c", "time timeout 120 poetry run python -u -m river_python_test.server --log-cli-level=debug"]
+CMD ["bash", "-c", "time timeout 120 uv run python -u -m river_python_test.server --log-cli-level=debug"]

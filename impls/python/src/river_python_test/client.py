@@ -22,6 +22,18 @@ from .protos.client_schema import (
 )
 from replit_river.transport_options import TransportOptions, UriAndMetadata
 
+# TODO: note:numbers
+# Unfortunately we've got to work around a difference in interpretation between node
+# and python. In node, `number` is a float and that is that.
+#
+# When rendered to schema.json we also get `"type": "number"`, which means in Python we
+# get `float`.
+#
+# This is fine, except that Node renders 42.0f as `42`, whereas python does `42.0`.
+#
+# Because of this, where we should have strict equivalence, we now introduce `{v:.0f}`,
+# a subtle and unfortunate difference.
+
 # Load environment variables
 PORT = os.getenv("PORT")
 CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
@@ -104,7 +116,9 @@ async def process_commands() -> None:
                     v = payload["v"]
                     try:
                         res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
-                        print(f"{id_} -- ok:{res.v}")
+                        print(
+                            f"{id_} -- ok:{res.v:.0f}"
+                        )  # TODO: See `note:numbers` above
                     except Exception:
                         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
                 case "kv.watch":
@@ -154,7 +168,7 @@ async def handle_watch(
     try:
         async for v in await test_client.kv.watch(KvWatchInput(k=k)):
             if isinstance(v, KvWatchOutput):
-                print(f"{id_} -- ok:{v.v}")
+                print(f"{id_} -- ok:{v.v:.0f}")  # TODO: See `note:numbers` above
             else:
                 print(f"{id_} -- err:{v.code}")
     except Exception:
