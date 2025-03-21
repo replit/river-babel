@@ -10,7 +10,7 @@ import typing
 import grpc
 import grpc.aio
 
-import river_python_test.protos.service_pb2
+import testservice.protos.service_pb2
 
 _T = typing.TypeVar("_T")
 
@@ -37,20 +37,20 @@ class kvServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def set(
         self,
-        request: river_python_test.protos.service_pb2.KVRequest,
+        request: testservice.protos.service_pb2.KVRequest,
         context: _ServicerContext,
     ) -> typing.Union[
-        river_python_test.protos.service_pb2.KVResponse,
-        collections.abc.Awaitable[river_python_test.protos.service_pb2.KVResponse],
+        testservice.protos.service_pb2.KVResponse,
+        collections.abc.Awaitable[testservice.protos.service_pb2.KVResponse],
     ]: ...  # noqa: E501
     @abc.abstractmethod
     def watch(
         self,
-        request: river_python_test.protos.service_pb2.KVRequest,
+        request: testservice.protos.service_pb2.KVRequest,
         context: _ServicerContext,
     ) -> typing.Union[
-        collections.abc.Iterator[river_python_test.protos.service_pb2.KVResponse],
-        collections.abc.AsyncIterator[river_python_test.protos.service_pb2.KVResponse],
+        collections.abc.Iterator[testservice.protos.service_pb2.KVResponse],
+        collections.abc.AsyncIterator[testservice.protos.service_pb2.KVResponse],
     ]: ...  # noqa: E501
 
 def add_kvServicer_to_server(
@@ -70,13 +70,11 @@ class repeatServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def echo(
         self,
-        request_iterator: _MaybeAsyncIterator[
-            river_python_test.protos.service_pb2.EchoInput
-        ],  # noqa: E501
+        request_iterator: _MaybeAsyncIterator[testservice.protos.service_pb2.EchoInput],
         context: _ServicerContext,
     ) -> typing.Union[
-        collections.abc.Iterator[river_python_test.protos.service_pb2.EchoOutput],
-        collections.abc.AsyncIterator[river_python_test.protos.service_pb2.EchoOutput],
+        collections.abc.Iterator[testservice.protos.service_pb2.EchoOutput],
+        collections.abc.AsyncIterator[testservice.protos.service_pb2.EchoOutput],
     ]: ...  # noqa: E501
 
 def add_repeatServicer_to_server(
@@ -97,12 +95,12 @@ class uploadServicer(metaclass=abc.ABCMeta):
     def send(
         self,
         request_iterator: _MaybeAsyncIterator[
-            river_python_test.protos.service_pb2.UploadInput
+            testservice.protos.service_pb2.UploadInput
         ],  # noqa: E501
         context: _ServicerContext,
     ) -> typing.Union[
-        river_python_test.protos.service_pb2.UploadOutput,
-        collections.abc.Awaitable[river_python_test.protos.service_pb2.UploadOutput],
+        testservice.protos.service_pb2.UploadOutput,
+        collections.abc.Awaitable[testservice.protos.service_pb2.UploadOutput],
     ]: ...  # noqa: E501
 
 def add_uploadServicer_to_server(

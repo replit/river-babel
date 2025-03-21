@@ -4,9 +4,7 @@
 import grpc
 import grpc.experimental  # type: ignore
 
-from river_python_test.protos import (
-    service_pb2 as river__python__test_dot_protos_dot_service__pb2,
-)
+from testservice.protos import service_pb2 as testservice_dot_protos_dot_service__pb2
 
 GRPC_GENERATED_VERSION = "1.71.0"
 GRPC_VERSION = grpc.__version__
@@ -24,7 +22,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f"The grpc package installed is at version {GRPC_VERSION},"
-        + " but the generated code in river_python_test/protos/service_pb2_grpc.py depends on"  # noqa: E501
+        + " but the generated code in testservice/protos/service_pb2_grpc.py depends on"
         + f" grpcio>={GRPC_GENERATED_VERSION}."
         + f" Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}"
         + f" or downgrade your generated code using grpcio-tools<={GRPC_VERSION}."
@@ -42,14 +40,14 @@ class kvStub(object):
         """
         self.set = channel.unary_unary(
             "/replit.river.test.kv/set",
-            request_serializer=river__python__test_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
-            response_deserializer=river__python__test_dot_protos_dot_service__pb2.KVResponse.FromString,
+            request_serializer=testservice_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
+            response_deserializer=testservice_dot_protos_dot_service__pb2.KVResponse.FromString,
             _registered_method=True,
         )
         self.watch = channel.unary_stream(
             "/replit.river.test.kv/watch",
-            request_serializer=river__python__test_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
-            response_deserializer=river__python__test_dot_protos_dot_service__pb2.KVResponse.FromString,
+            request_serializer=testservice_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
+            response_deserializer=testservice_dot_protos_dot_service__pb2.KVResponse.FromString,
             _registered_method=True,
         )
 
@@ -74,13 +72,13 @@ def add_kvServicer_to_server(servicer, server):
     rpc_method_handlers = {
         "set": grpc.unary_unary_rpc_method_handler(
             servicer.set,
-            request_deserializer=river__python__test_dot_protos_dot_service__pb2.KVRequest.FromString,
-            response_serializer=river__python__test_dot_protos_dot_service__pb2.KVResponse.SerializeToString,
+            request_deserializer=testservice_dot_protos_dot_service__pb2.KVRequest.FromString,
+            response_serializer=testservice_dot_protos_dot_service__pb2.KVResponse.SerializeToString,
         ),
         "watch": grpc.unary_stream_rpc_method_handler(
             servicer.watch,
-            request_deserializer=river__python__test_dot_protos_dot_service__pb2.KVRequest.FromString,
-            response_serializer=river__python__test_dot_protos_dot_service__pb2.KVResponse.SerializeToString,
+            request_deserializer=testservice_dot_protos_dot_service__pb2.KVRequest.FromString,
+            response_serializer=testservice_dot_protos_dot_service__pb2.KVResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -111,8 +109,8 @@ class kv(object):
             request,
             target,
             "/replit.river.test.kv/set",
-            river__python__test_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
-            river__python__test_dot_protos_dot_service__pb2.KVResponse.FromString,
+            testservice_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
+            testservice_dot_protos_dot_service__pb2.KVResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -141,8 +139,8 @@ class kv(object):
             request,
             target,
             "/replit.river.test.kv/watch",
-            river__python__test_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
-            river__python__test_dot_protos_dot_service__pb2.KVResponse.FromString,
+            testservice_dot_protos_dot_service__pb2.KVRequest.SerializeToString,
+            testservice_dot_protos_dot_service__pb2.KVResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -166,8 +164,8 @@ class repeatStub(object):
         """
         self.echo = channel.stream_stream(
             "/replit.river.test.repeat/echo",
-            request_serializer=river__python__test_dot_protos_dot_service__pb2.EchoInput.SerializeToString,
-            response_deserializer=river__python__test_dot_protos_dot_service__pb2.EchoOutput.FromString,
+            request_serializer=testservice_dot_protos_dot_service__pb2.EchoInput.SerializeToString,
+            response_deserializer=testservice_dot_protos_dot_service__pb2.EchoOutput.FromString,
             _registered_method=True,
         )
 
@@ -186,8 +184,8 @@ def add_repeatServicer_to_server(servicer, server):
     rpc_method_handlers = {
         "echo": grpc.stream_stream_rpc_method_handler(
             servicer.echo,
-            request_deserializer=river__python__test_dot_protos_dot_service__pb2.EchoInput.FromString,
-            response_serializer=river__python__test_dot_protos_dot_service__pb2.EchoOutput.SerializeToString,
+            request_deserializer=testservice_dot_protos_dot_service__pb2.EchoInput.FromString,
+            response_serializer=testservice_dot_protos_dot_service__pb2.EchoOutput.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -220,8 +218,8 @@ class repeat(object):
             request_iterator,
             target,
             "/replit.river.test.repeat/echo",
-            river__python__test_dot_protos_dot_service__pb2.EchoInput.SerializeToString,
-            river__python__test_dot_protos_dot_service__pb2.EchoOutput.FromString,
+            testservice_dot_protos_dot_service__pb2.EchoInput.SerializeToString,
+            testservice_dot_protos_dot_service__pb2.EchoOutput.FromString,
             options,
             channel_credentials,
             insecure,
@@ -245,8 +243,8 @@ class uploadStub(object):
         """
         self.send = channel.stream_unary(
             "/replit.river.test.upload/send",
-            request_serializer=river__python__test_dot_protos_dot_service__pb2.UploadInput.SerializeToString,
-            response_deserializer=river__python__test_dot_protos_dot_service__pb2.UploadOutput.FromString,
+            request_serializer=testservice_dot_protos_dot_service__pb2.UploadInput.SerializeToString,
+            response_deserializer=testservice_dot_protos_dot_service__pb2.UploadOutput.FromString,
             _registered_method=True,
         )
 
@@ -265,8 +263,8 @@ def add_uploadServicer_to_server(servicer, server):
     rpc_method_handlers = {
         "send": grpc.stream_unary_rpc_method_handler(
             servicer.send,
-            request_deserializer=river__python__test_dot_protos_dot_service__pb2.UploadInput.FromString,
-            response_serializer=river__python__test_dot_protos_dot_service__pb2.UploadOutput.SerializeToString,
+            request_deserializer=testservice_dot_protos_dot_service__pb2.UploadInput.FromString,
+            response_serializer=testservice_dot_protos_dot_service__pb2.UploadOutput.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -299,8 +297,8 @@ class upload(object):
             request_iterator,
             target,
             "/replit.river.test.upload/send",
-            river__python__test_dot_protos_dot_service__pb2.UploadInput.SerializeToString,
-            river__python__test_dot_protos_dot_service__pb2.UploadOutput.FromString,
+            testservice_dot_protos_dot_service__pb2.UploadInput.SerializeToString,
+            testservice_dot_protos_dot_service__pb2.UploadOutput.FromString,
             options,
             channel_credentials,
             insecure,
