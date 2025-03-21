@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+from datetime import timedelta
 from typing import AsyncIterator, Dict
 
 from replit_river import (
@@ -12,16 +13,11 @@ from replit_river import (
 from replit_river.error_schema import RiverError  # noqa: F811
 from replit_river.transport_options import TransportOptions, UriAndMetadata
 
-from .protos.client_schema import (
-    KvSetInput,
-    KvWatchInput,
-    KvWatchOutput,
-    RepeatEchoInput,
-    RepeatEchoOutput,
-    TestCient,
-    UploadSendInput,
-    UploadSendOutput,
-)
+from testservice.protos import TestCient
+from testservice.protos.kv.set import SetInput
+from testservice.protos.kv.watch import WatchInput, WatchOutput
+from testservice.protos.repeat.echo import EchoInput, EchoOutput
+from testservice.protos.upload.send import SendInput, SendOutput
 
 # TODO: note:numbers
 # Unfortunately we've got to work around a difference in interpretation between node
@@ -116,7 +112,9 @@ async def process_commands() -> None:
                     k = payload["k"]
                     v = payload["v"]
                     try:
-                        res = await test_client.kv.set(KvSetInput(k=k, v=int(v)))
+                        res = await test_client.kv.set(
+                            SetInput(k=k, v=int(v)), timedelta(seconds=60)
+                        )  # noqa: E501
                         print(
                             f"{id_} -- ok:{res.v:.0f}"
                         )  # TODO: See `note:numbers` above
@@ -167,8 +165,8 @@ async def handle_watch(
     test_client: TestCient,
 ) -> None:
     try:
-        async for v in await test_client.kv.watch(KvWatchInput(k=k)):
-            if isinstance(v, KvWatchOutput):
+        async for v in await test_client.kv.watch(WatchInput(k=k)):
+            if isinstance(v, WatchOutput):
                 print(f"{id_} -- ok:{v.v:.0f}")  # TODO: See `note:numbers` above
             else:
                 print(f"{id_} -- err:{v.code}")
@@ -177,15 +175,15 @@ async def handle_watch(
 
 
 async def handle_upload(id_: str, test_client: TestCient) -> None:
-    async def upload_iterator() -> AsyncIterator[UploadSendInput]:
+    async def upload_iterator() -> AsyncIterator[SendInput]:
         while True:
             item = await input_streams[id_].get()
             if item == "EOF":  # Use a special EOF marker to break the loop
                 break
-            yield UploadSendInput(part=item)
+            yield SendInput(part=item)
 
-    async def print_result(result: UploadSendOutput | RiverError) -> None:
-        if isinstance(result, UploadSendOutput):
+    async def print_result(result: SendOutput | RiverError) -> None:
+        if isinstance(result, SendOutput):
             print(f"{id_} -- ok:{result.doc}")
         else:  # Assuming this handles both RiverError and exceptions
             print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
@@ -199,15 +197,15 @@ async def handle_upload(id_: str, test_client: TestCient) -> None:
 
 
 async def handle_echo(id_: str, test_client: TestCient) -> None:
-    async def upload_iterator() -> AsyncIterator[RepeatEchoInput]:
+    async def upload_iterator() -> AsyncIterator[EchoInput]:
         while True:
             item = await input_streams[id_].get()
             if item == "EOF":  # Use a special EOF marker to break the loop
                 break
-            yield RepeatEchoInput(str=item)
+            yield EchoInput(str=item)
 
-    def print_result(result: RepeatEchoOutput | RiverError) -> None:
-        if isinstance(result, RepeatEchoOutput):
+    def print_result(result: EchoOutput | RiverError) -> None:
+        if isinstance(result, EchoOutput):
             print(f"{id_} -- ok:{result.out}")
         else:  # Assuming this handles both RiverError and exceptions
             print(f"{id_} -- err:{result.code}")
