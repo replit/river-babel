@@ -20,17 +20,17 @@ uv run python -m grpc_tools.protoc \
   --mypy_out=./src \
   --grpc_python_out=./src \
   --mypy_grpc_out=./src \
-  "${REPO_ROOT_DIR}/protos/river_python_test/protos/service.proto"
+  "${REPO_ROOT_DIR}/protos/testservice/protos/service.proto"
 
 uv run python -m replit_river.codegen \
   server \
-    --module river_python_test.protos \
-    --output ./src/river_python_test/protos \
-    "${REPO_ROOT_DIR}/protos/river_python_test/protos/service.proto"
+    --module testservice.protos \
+    --output ./src/testservice/protos \
+    "${REPO_ROOT_DIR}/protos/testservice/protos/service.proto"
 
 uv run python -m replit_river.codegen \
   client \
-    --output ./src/river_python_test/protos/client_schema.py \
+    --output ./src/testservice/protos/client_schema.py \
     --client-name TestCient \
     "${REPO_ROOT_DIR}/schema.json"
 
@@ -42,7 +42,7 @@ fi
 
 uv run ruff format
 
-git add src/river_python_test/protos
+git add src/testservice/protos
 
 uv run pyright .
 

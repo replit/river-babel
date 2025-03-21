@@ -3,7 +3,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 import replit_river as river
 
-from river_python_test.protos import service_pb2, service_pb2_grpc
+from testservice.protos import service_pb2, service_pb2_grpc
 
 
 def _KVRequestEncoder(e: service_pb2.KVRequest) -> Dict[str, Any]:

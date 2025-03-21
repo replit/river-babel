@@ -14,4 +14,4 @@ COPY src src
 RUN uv sync
 
 # bash is required for "time" in python:3.11-slim-bookworm
-CMD ["bash", "-c", "time timeout 120 uv run python -u -m river_python_test.client --log-cli-level=debug"]
+CMD ["bash", "-c", "time timeout 120 uv run python -u -m testservice.client --log-cli-level=debug"]

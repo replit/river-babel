@@ -13,7 +13,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/river_python_test"]
+packages = ["src/testservice"]
 
 [dependency-groups]
 dev = [
