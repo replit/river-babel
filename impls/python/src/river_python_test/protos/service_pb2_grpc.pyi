@@ -17,7 +17,6 @@ class _MaybeAsyncIterator(
     collections.abc.Iterator[_T],
     metaclass=abc.ABCMeta,
 ): ...
-
 class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
