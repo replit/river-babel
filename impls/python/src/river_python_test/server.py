@@ -1,4 +1,4 @@
-import http
+import asyncio
 import logging
 import os
 from typing import (
@@ -7,14 +7,12 @@ from typing import (
     Callable,
     Dict,
     Generic,
-    TypeVar,
     Optional,
+    TypeVar,
 )
-from grpc import ServicerContext
 
 import replit_river as river
-
-import asyncio
+from grpc import ServicerContext
 from replit_river.error_schema import RiverError
 from replit_river.transport_options import TransportOptions
 from websockets import Headers, Request, Response, ServerConnection, serve
@@ -102,7 +100,7 @@ class KvServicer(service_pb2_grpc.kvServicer):
 
 
 class UploadServicer(service_pb2_grpc.uploadServicer):
-    async def send(
+    async def send(  # pyright: ignore
         self,
         request_iterator: AsyncIterator[service_pb2.UploadInput],
         context: ServicerContext,
@@ -116,7 +114,7 @@ class UploadServicer(service_pb2_grpc.uploadServicer):
 
 
 class RepeatServicer(service_pb2_grpc.repeatServicer):
-    async def echo(
+    async def echo(  # pyright: ignore
         self,
         request_iterator: AsyncIterator[service_pb2.EchoInput],
         context: ServicerContext,
