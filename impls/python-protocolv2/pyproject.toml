@@ -1,0 +1,66 @@
+[project]
+name = "river-python-test"
+version = "1.0.0"
+description = "River toolkit for Python"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "replit-river==0.16.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/testservice"]
+
+[dependency-groups]
+dev = [
+    "deptry>=0.23.0",
+    "mypy>=1.15.0",
+    "mypy-protobuf>=3.6.0",
+    "pyright>=1.1.396",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.11.0",
+    "types-protobuf>=5.29.1.20250315",
+]
+
+[tool.ruff]
+lint.select = ["F", "E", "W", "I001"]
+
+# Should be kept in sync with mypy.ini in the project root.
+# The VSCode mypy extension can only read /mypy.ini.
+# While mypy run inside the chat container can only see this file.
+[tool.mypy]
+plugins = "pydantic.mypy"
+disallow_untyped_defs = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"  # auto-detect async tests/fixtures
+addopts = "--tb=short"
+env = [
+        "DD_DOGSTATSD_DISABLE=true",
+        "DD_TRACE_ENABLED=false",
+]
+filterwarnings = [
+        "ignore::DeprecationWarning",  # google SDKs cause this noise
+]
+markers = [
+        "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+]
+
+[[tool.mypy.overrides]]
+module = [
+        "google.auth.*",
+        "google.oauth2.*",
+        "google.cloud.sqlalchemy_spanner.sqlalchemy_spanner.*",
+        "grpc.*",
+        "grpc_tools.*",
+        "nanoid.*",
+]
+ignore_missing_imports = true
