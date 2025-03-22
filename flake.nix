@@ -15,7 +15,11 @@
         nodePackages.typescript-language-server
         python3
         poetry
+        uv
       ];
+      shellHook = ''
+        export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib"
+      '';
     };
   in
   {

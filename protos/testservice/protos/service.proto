@@ -8,11 +8,11 @@ package replit.river.test;
 
 message KVRequest {
   string k = 1;
-  int32 v = 2;
+  float v = 2;
 }
 
 message KVResponse {
-  int32 v = 1;
+  float v = 1;
 }
 
 message EchoInput {

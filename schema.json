@@ -1,0 +1,192 @@
+{
+  "services": {
+    "kv": {
+      "procedures": {
+        "set": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "k": {
+                "type": "string"
+              },
+              "v": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "k",
+              "v"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "v": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "v"
+            ]
+          },
+          "errors": {
+            "not": {}
+          },
+          "type": "rpc"
+        },
+        "watch": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "k": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "k"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "v": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "v"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "NOT_FOUND",
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          },
+          "type": "subscription"
+        }
+      }
+    },
+    "repeat": {
+      "procedures": {
+        "echo": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "str": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "str"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "out": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "out"
+            ]
+          },
+          "errors": {
+            "not": {}
+          },
+          "type": "stream"
+        },
+        "echo_prefix": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "str": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "str"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "out": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "out"
+            ]
+          },
+          "errors": {
+            "not": {}
+          },
+          "type": "stream",
+          "init": {
+            "type": "object",
+            "properties": {
+              "prefix": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "prefix"
+            ]
+          }
+        }
+      }
+    },
+    "upload": {
+      "procedures": {
+        "send": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "part": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "const": "EOF",
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "part"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "doc": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "doc"
+            ]
+          },
+          "errors": {
+            "not": {}
+          },
+          "type": "upload"
+        }
+      }
+    }
+  }
+}

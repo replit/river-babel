@@ -34,7 +34,6 @@ const KvRpcTest: Test = {
 };
 
 const KvSubscribeTest: Test = {
-  flaky: true,
   clients: {
     client: {
       actions: [
