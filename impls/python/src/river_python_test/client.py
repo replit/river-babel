@@ -9,7 +9,9 @@ from replit_river import (
     Client,
     RiverError,
 )
-from replit_river.error_schema import RiverError
+from replit_river.error_schema import RiverError  # noqa: F811
+from replit_river.transport_options import TransportOptions, UriAndMetadata
+
 from .protos.client_schema import (
     KvSetInput,
     KvWatchInput,
@@ -20,7 +22,6 @@ from .protos.client_schema import (
     UploadSendInput,
     UploadSendOutput,
 )
-from replit_river.transport_options import TransportOptions, UriAndMetadata
 
 # TODO: note:numbers
 # Unfortunately we've got to work around a difference in interpretation between node
@@ -95,7 +96,7 @@ async def process_commands() -> None:
                 action = json.loads(line)
             except json.JSONDecodeError as e:
                 # Sometimes docker injects this into the stream:
-                # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...
+                # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...  # noqa: E501
                 offset = e.colno - 1
                 first = json.loads(line[0:offset])
                 assert "hijack" in first
