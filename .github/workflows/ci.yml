@@ -73,7 +73,7 @@ jobs:
       - run: npm ci
 
       - name: Test
-        run: npm run start -- --client ${{ matrix.client }} --server ${{ matrix.server }} --parallel 2
+        run: npm run start -- --client ${{ matrix.client }} --server ${{ matrix.server }} --parallel 2 --bail
 
       - uses: actions/upload-artifact@v4
         if: failure()
