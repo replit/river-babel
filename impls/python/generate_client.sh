@@ -41,9 +41,6 @@ if ! uv run ruff check --fix; then
 fi
 
 uv run ruff format
-
-git add src/testservice/protos
-
 uv run pyright .
 
 echo "Completed"
