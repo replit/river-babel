@@ -33,6 +33,7 @@ import { PRESET_TIMER, type ListrTask } from 'listr2';
 import { Manager } from '@listr2/manager';
 import { constants, open } from 'fs/promises';
 import assert from 'assert';
+import path from 'path';
 
 const {
   client: clientImpl,
@@ -320,7 +321,7 @@ async function runSuite(
 
           log('status: writing results');
 
-          const stderrLogFilePath = `${logsDir}/${name}.log`;
+          const stderrLogFilePath = path.join(logsDir, `${name}.log`);
           const logFileHandle = await open(
             stderrLogFilePath,
             constants.O_APPEND | constants.O_WRONLY | constants.O_CREAT,
