@@ -38,3 +38,9 @@ codegen-python: schema.json
 codegen-python-v2:
 	cd impls/python-protocolv2; \
 	./generate_client.sh
+
+start-node-protocolv2:
+	cd impls/node-protocolv2 && \
+		npm ci && \
+		HEARTBEAT_MS=500 PORT=9887 SERVER_TRANSPORT_ID=server \
+		npm run --silent start:server
