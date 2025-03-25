@@ -34,3 +34,7 @@ schema.json:
 codegen-python: schema.json
 	cd impls/python; \
 	./generate_client.sh
+
+codegen-python-v2:
+	cd impls/python-protocolv2; \
+	./generate_client.sh
