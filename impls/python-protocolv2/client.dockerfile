@@ -4,6 +4,7 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /usr/src/river
 
+RUN apt-get update && apt-get install -fy git
 RUN pip install uv==0.6.8
 
 COPY pyproject.toml .
