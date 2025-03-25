@@ -10,7 +10,7 @@ from .upload import UploadService
 
 
 class TestCient:
-    def __init__(self, client: river.Client[Literal[None]]):
+    def __init__(self, client: river.v2.Client[Literal[None]]):
         self.kv = KvService(client)
         self.repeat = RepeatService(client)
         self.upload = UploadService(client)

@@ -4,35 +4,42 @@ from collections.abc import AsyncIterable, AsyncIterator
 from typing import Any
 
 import replit_river as river
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter  # noqa: F401
 from replit_river.error_schema import RiverError, RiverErrorTypeAdapter
 
-from .echo import EchoInput, EchoInputTypeAdapter, EchoOutput, EchoOutputTypeAdapter
+from .echo import (
+    EchoInit,
+    EchoInitTypeAdapter,
+    EchoInput,
+    EchoInputTypeAdapter,
+    EchoOutput,
+    EchoOutputTypeAdapter,
+)
 from .echo_prefix import (
     Echo_PrefixInit,
+    Echo_PrefixInitTypeAdapter,
     Echo_PrefixInput,
     Echo_PrefixInputTypeAdapter,
     Echo_PrefixOutput,
     Echo_PrefixOutputTypeAdapter,
 )
 
-Echo_PrefixInitTypeAdapter: TypeAdapter[Any] = TypeAdapter(Echo_PrefixInit)
-
 
 class RepeatService:
-    def __init__(self, client: river.Client[Any]):
+    def __init__(self, client: river.v2.Client[Any]):
         self.client = client
 
     async def echo(
         self,
+        init: EchoInit,
         inputStream: AsyncIterable[EchoInput],
     ) -> AsyncIterator[EchoOutput | RiverError | RiverError]:
         return self.client.send_stream(
             "repeat",
             "echo",
-            None,
+            init,
             inputStream,
-            None,
+            lambda x: EchoInitTypeAdapter.validate_python(x),
             lambda x: EchoInputTypeAdapter.dump_python(
                 x,  # type: ignore[arg-type]
                 by_alias=True,
@@ -56,7 +63,7 @@ class RepeatService:
             "echo_prefix",
             init,
             inputStream,
-            lambda x: Echo_PrefixInitTypeAdapter.validate_python,
+            lambda x: Echo_PrefixInitTypeAdapter.validate_python(x),
             lambda x: Echo_PrefixInputTypeAdapter.dump_python(
                 x,  # type: ignore[arg-type]
                 by_alias=True,

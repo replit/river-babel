@@ -7,35 +7,31 @@ import replit_river as river
 from pydantic import TypeAdapter  # noqa: F401
 from replit_river.error_schema import RiverError, RiverErrorTypeAdapter
 
-from .set import SetInput, SetInputTypeAdapter, SetOutput, SetOutputTypeAdapter
+from .set import SetInit, SetInitTypeAdapter, SetOutput, SetOutputTypeAdapter
 from .watch import (
     WatchErrors,
     WatchErrorsTypeAdapter,
-    WatchInput,
-    WatchInputTypeAdapter,
+    WatchInit,
+    WatchInitTypeAdapter,
     WatchOutput,
     WatchOutputTypeAdapter,
 )
 
 
 class KvService:
-    def __init__(self, client: river.Client[Any]):
+    def __init__(self, client: river.v2.Client[Any]):
         self.client = client
 
     async def set(
         self,
-        input: SetInput,
+        init: SetInit,
         timeout: datetime.timedelta,
     ) -> SetOutput:
         return await self.client.send_rpc(
             "kv",
             "set",
-            input,
-            lambda x: SetInputTypeAdapter.dump_python(
-                x,  # type: ignore[arg-type]
-                by_alias=True,
-                exclude_none=True,
-            ),
+            init,
+            lambda x: SetInitTypeAdapter.validate_python(x),
             lambda x: SetOutputTypeAdapter.validate_python(
                 x  # type: ignore[arg-type]
             ),
@@ -47,17 +43,13 @@ class KvService:
 
     async def watch(
         self,
-        input: WatchInput,
+        init: WatchInit,
     ) -> AsyncIterator[WatchOutput | WatchErrors | RiverError]:
         return self.client.send_subscription(
             "kv",
             "watch",
-            input,
-            lambda x: WatchInputTypeAdapter.dump_python(
-                x,  # type: ignore[arg-type]
-                by_alias=True,
-                exclude_none=True,
-            ),
+            init,
+            lambda x: WatchInitTypeAdapter.validate_python(x),
             lambda x: WatchOutputTypeAdapter.validate_python(
                 x  # type: ignore[arg-type]
             ),

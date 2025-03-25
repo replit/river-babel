@@ -4,20 +4,18 @@ import logging
 import os
 import sys
 from datetime import timedelta
-from typing import AsyncIterator, Dict
+from typing import Any, AsyncGenerator, AsyncIterable, AsyncIterator, Dict
 
-from replit_river import (
-    Client,
-    RiverError,
-)
+from replit_river import RiverError
 from replit_river.error_schema import RiverError  # noqa: F811
 from replit_river.transport_options import TransportOptions, UriAndMetadata
+from replit_river.v2 import Client
 
 from testservice.protos import TestCient
-from testservice.protos.kv.set import SetInput
-from testservice.protos.kv.watch import WatchInput, WatchOutput
-from testservice.protos.repeat.echo import EchoInput, EchoOutput
-from testservice.protos.upload.send import SendInput, SendOutput
+from testservice.protos.kv.set import SetInit
+from testservice.protos.kv.watch import WatchInit, WatchOutput
+from testservice.protos.repeat.echo import EchoInit, EchoInput, EchoOutput
+from testservice.protos.upload.send import SendInit, SendInput, SendOutput
 
 # TODO: note:numbers
 # Unfortunately we've got to work around a difference in interpretation between node
@@ -43,7 +41,7 @@ RIVER_SERVER = os.getenv("RIVER_SERVER")
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="Python Server %(asctime)s - %(levelname)s - %(message)s",
+    format="Python Client %(asctime)s - %(levelname)s - %(message)s",
 )
 
 
@@ -51,7 +49,37 @@ input_streams: Dict[str, asyncio.Queue] = {}
 tasks: Dict[str, asyncio.Task] = {}
 
 
-async def process_commands() -> None:
+async def asyncly_emit(
+    actions: list[dict[Any, Any]],
+) -> AsyncGenerator[tuple[str, Any], None]:  # noqa: E501
+    for action in actions:
+        line = json.dumps(action)
+        yield line, action
+    await asyncio.sleep(5)
+
+
+async def read_from_stdin() -> AsyncGenerator[tuple[str, Any], None]:
+    while True:
+        line = await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
+
+        # We're done
+        if not line:
+            break
+
+        try:
+            action = json.loads(line)
+        except json.JSONDecodeError as e:
+            # Sometimes docker injects this into the stream:
+            # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...  # noqa: E501
+            offset = e.colno - 1
+            first = json.loads(line[0:offset])
+            assert "hijack" in first
+            action = json.loads(line[offset:])
+
+        yield line, action
+
+
+async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
     logging.error("start python river client")
     uri = f"ws://{RIVER_SERVER}:{PORT}"
     logging.error(
@@ -81,22 +109,14 @@ async def process_commands() -> None:
     )
     test_client = TestCient(client)
     try:
-        while True:
-            line = await asyncio.get_event_loop().run_in_executor(
-                None, sys.stdin.readline
-            )
+        if static_actions:
+            actions = asyncly_emit(static_actions)
+        else:
+            actions = read_from_stdin()
+
+        async for line, action in actions:
             if not line:
                 break
-
-            try:
-                action = json.loads(line)
-            except json.JSONDecodeError as e:
-                # Sometimes docker injects this into the stream:
-                # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...  # noqa: E501
-                offset = e.colno - 1
-                first = json.loads(line[0:offset])
-                assert "hijack" in first
-                action = json.loads(line[offset:])
 
             if not action:
                 print("FATAL: invalid command", line)
@@ -113,8 +133,8 @@ async def process_commands() -> None:
                     v = payload["v"]
                     try:
                         res = await test_client.kv.set(
-                            SetInput(k=k, v=int(v)), timedelta(seconds=60)
-                        )  # noqa: E501
+                            SetInit(k=k, v=int(v)), timedelta(seconds=60)
+                        )
                         print(
                             f"{id_} -- ok:{res.v:.0f}"
                         )  # TODO: See `note:numbers` above
@@ -126,7 +146,9 @@ async def process_commands() -> None:
                 case "repeat.echo":
                     if id_ not in input_streams:
                         input_streams[id_] = asyncio.Queue()
-                        tasks[id_] = asyncio.create_task(handle_echo(id_, test_client))
+                        tasks[id_] = asyncio.create_task(
+                            handle_echo(id_, action["init"], test_client)
+                        )  # noqa: E501
                     else:
                         s = payload["s"]
                         await input_streams[id_].put(s)
@@ -153,6 +175,8 @@ async def process_commands() -> None:
         await client.close()
         for task in tasks.values():
             task.cancel()
+            while not task.done():
+                await asyncio.sleep(0.1)
             exception = task.exception()
             if exception is not None:
                 logging.error("Task raised an exception: {}", exception)
@@ -165,7 +189,7 @@ async def handle_watch(
     test_client: TestCient,
 ) -> None:
     try:
-        async for v in await test_client.kv.watch(WatchInput(k=k)):
+        async for v in await test_client.kv.watch(WatchInit(k=k)):
             if isinstance(v, WatchOutput):
                 print(f"{id_} -- ok:{v.v:.0f}")  # TODO: See `note:numbers` above
             else:
@@ -176,8 +200,8 @@ async def handle_watch(
 
 async def handle_upload(id_: str, test_client: TestCient) -> None:
     async def upload_iterator() -> AsyncIterator[SendInput]:
-        while True:
-            item = await input_streams[id_].get()
+        while stream := input_streams.get(id_):
+            item = await stream.get()
             if item == "EOF":  # Use a special EOF marker to break the loop
                 break
             yield SendInput(part=item)
@@ -190,35 +214,39 @@ async def handle_upload(id_: str, test_client: TestCient) -> None:
         return
 
     try:
-        result = await test_client.upload.send(upload_iterator())
+        init = SendInit(part=await input_streams[id_].get())
+        result = await test_client.upload.send(init, upload_iterator())
         await print_result(result)
     except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
-async def handle_echo(id_: str, test_client: TestCient) -> None:
-    async def upload_iterator() -> AsyncIterator[EchoInput]:
-        while True:
-            item = await input_streams[id_].get()
-            if item == "EOF":  # Use a special EOF marker to break the loop
-                break
-            yield EchoInput(str=item)
-
+async def handle_echo(id_: str, init: Any, test_client: TestCient) -> None:
     def print_result(result: EchoOutput | RiverError) -> None:
         if isinstance(result, EchoOutput):
             print(f"{id_} -- ok:{result.out}")
         else:  # Assuming this handles both RiverError and exceptions
             print(f"{id_} -- err:{result.code}")
 
+    async def serve_inputs() -> AsyncIterable[EchoInput]:
+        while inputs := input_streams.get(id_):
+            yield EchoInput(str=await inputs.get())
+
     try:
-        async for v in await test_client.repeat.echo(upload_iterator()):
+        async for v in await test_client.repeat.echo(EchoInit(**init), serve_inputs()):
             print_result(v)
     except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
 
 
 async def main() -> None:
-    await process_commands()
+    # static_actions = [
+    #     {"type":"invoke","id":"1","proc":"repeat.echo","init":{}},
+    #     {"type":"invoke","id":"1","proc":"repeat.echo","payload":{"s":"hello"}},
+    #     {"type":"invoke","id":"1","proc":"repeat.echo","payload":{"s":"world"}},
+    # ]
+    # await process_commands(static_actions)
+    await process_commands(None)
 
 
 if __name__ == "__main__":
