@@ -15,6 +15,11 @@ from testservice.protos import TestCient
 from testservice.protos.kv.set import SetInit
 from testservice.protos.kv.watch import WatchInit, WatchOutput
 from testservice.protos.repeat.echo import EchoInit, EchoInput, EchoOutput
+from testservice.protos.repeat.echo_prefix import (
+    Echo_PrefixInit,
+    Echo_PrefixInput,
+    Echo_PrefixOutput,
+)
 from testservice.protos.upload.send import SendInit, SendInput, SendOutput
 
 # TODO: note:numbers
@@ -152,6 +157,34 @@ async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
                     else:
                         s = payload["s"]
                         await input_streams[id_].put(s)
+                case "repeat.echo_prefix":
+                    print("repeat echo")
+
+                    async def input_iterator() -> AsyncGenerator[
+                        Echo_PrefixInput, None
+                    ]:
+                        while inputs := input_streams.get(id_):
+                            yield Echo_PrefixInput(str=await inputs.get())
+
+                    async def do_call(id_: str, init: dict[Any, Any]) -> None:
+                        try:
+                            async for v in await test_client.repeat.echo_prefix(
+                                Echo_PrefixInit(**init), input_iterator()
+                            ):
+                                match v:
+                                    case Echo_PrefixOutput():
+                                        print(f"{id_} -- ok:{v.out}")
+                                    case RiverError():
+                                        print(f"{id_} -- err:{v.code}")
+                        except Exception:
+                            print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+
+                    if id_ not in input_streams:
+                        input_streams[id_] = asyncio.Queue()
+                        init = action["init"]
+                        tasks[id_] = asyncio.create_task(do_call(id_, init))
+                    else:
+                        await input_streams[id_].put(payload["str"])
                 case "upload.send":
                     if id_ not in input_streams:
                         input_streams[id_] = asyncio.Queue()
@@ -171,6 +204,8 @@ async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
                             await tasks[id_]
                             tasks.pop(id_, None)  # Cleanup task reference
                             input_streams.pop(id_, None)  # Cleanup queue reference
+                case other:
+                    raise ValueError("Unexpected action!", other)
     finally:
         await client.close()
         for task in tasks.values():
