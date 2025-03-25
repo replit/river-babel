@@ -32,7 +32,8 @@ uv run python -m replit_river.codegen \
   client \
     --output ./src/testservice/protos \
     --client-name TestCient \
-    "${REPO_ROOT_DIR}/schema.json"
+    --protocol-version v2.0 \
+    "${REPO_ROOT_DIR}/schema-v2.json"
 
 "${REPO_ROOT_DIR}/scripts/patch-grpc.sh" "$(pwd)"
 
@@ -41,9 +42,6 @@ if ! uv run ruff check --fix; then
 fi
 
 uv run ruff format
-
-git add src/testservice/protos
-
 uv run pyright .
 
 echo "Completed"

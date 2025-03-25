@@ -5,25 +5,33 @@ from typing import Any
 
 import replit_river as river
 from pydantic import TypeAdapter  # noqa: F401
-from replit_river.error_schema import RiverError, RiverErrorTypeAdapter
+from replit_river.error_schema import RiverError, RiverErrorTypeAdapter  # noqa: F401
 
-from .send import SendInput, SendInputTypeAdapter, SendOutput, SendOutputTypeAdapter
+from .send import (
+    SendInit,
+    SendInitTypeAdapter,
+    SendInput,
+    SendInputTypeAdapter,
+    SendOutput,
+    SendOutputTypeAdapter,
+)
 
 
 class UploadService:
-    def __init__(self, client: river.Client[Any]):
+    def __init__(self, client: river.v2.Client[Any]):
         self.client = client
 
     async def send(
         self,
+        init: SendInit,
         inputStream: AsyncIterable[SendInput],
-    ) -> SendOutput | RiverError:
+    ) -> SendOutput:
         return await self.client.send_upload(
             "upload",
             "send",
-            None,
+            init,
             inputStream,
-            None,
+            lambda x: SendInitTypeAdapter.validate_python(x),
             lambda x: SendInputTypeAdapter.dump_python(
                 x,  # type: ignore[arg-type]
                 by_alias=True,
