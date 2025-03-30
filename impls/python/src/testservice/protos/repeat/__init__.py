@@ -16,7 +16,7 @@ from .echo_prefix import (
     Echo_PrefixOutputTypeAdapter,
 )
 
-Echo_PrefixInitTypeAdapter: TypeAdapter[Any] = TypeAdapter(Echo_PrefixInit)
+Echo_PrefixInitTypeAdapter: TypeAdapter[Echo_PrefixInit] = TypeAdapter(Echo_PrefixInit)
 
 
 class RepeatService:
@@ -56,7 +56,7 @@ class RepeatService:
             "echo_prefix",
             init,
             inputStream,
-            lambda x: Echo_PrefixInitTypeAdapter.validate_python,
+            lambda x: Echo_PrefixInitTypeAdapter.validate_python(x),
             lambda x: Echo_PrefixInputTypeAdapter.dump_python(
                 x,  # type: ignore[arg-type]
                 by_alias=True,
