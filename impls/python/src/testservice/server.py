@@ -1,4 +1,4 @@
-import http
+import asyncio
 import logging
 import os
 from typing import (
@@ -7,20 +7,17 @@ from typing import (
     Callable,
     Dict,
     Generic,
-    TypeVar,
     Optional,
+    TypeVar,
 )
-from grpc import ServicerContext
 
 import replit_river as river
-
-import asyncio
+from grpc import ServicerContext
 from replit_river.error_schema import RiverError
 from replit_river.transport_options import TransportOptions
-from websockets import Headers
-from websockets.legacy.server import HTTPResponse
-from websockets.server import serve
-from .protos import service_pb2, service_pb2_grpc, service_river
+from websockets import Headers, Request, Response, ServerConnection, serve
+
+from testservice.protos import service_pb2, service_pb2_grpc, service_river
 
 PORT = os.getenv("PORT")
 CLIENT_TRANSPORT_ID = os.getenv("CLIENT_TRANSPORT_ID")
@@ -103,7 +100,7 @@ class KvServicer(service_pb2_grpc.kvServicer):
 
 
 class UploadServicer(service_pb2_grpc.uploadServicer):
-    async def send(
+    async def send(  # pyright: ignore
         self,
         request_iterator: AsyncIterator[service_pb2.UploadInput],
         context: ServicerContext,
@@ -117,7 +114,7 @@ class UploadServicer(service_pb2_grpc.uploadServicer):
 
 
 class RepeatServicer(service_pb2_grpc.repeatServicer):
-    async def echo(
+    async def echo(  # pyright: ignore
         self,
         request_iterator: AsyncIterator[service_pb2.EchoInput],
         context: ServicerContext,
@@ -147,9 +144,12 @@ async def start_server() -> None:
     done: asyncio.Future[None] = asyncio.Future()
     started: asyncio.Future[None] = asyncio.Future()
 
-    async def process_request(path: str, _: Headers) -> Optional[HTTPResponse]:
-        if path == "/healthz":
-            return http.HTTPStatus.OK, [], b"OK\n"
+    async def process_request(
+        _: ServerConnection,
+        request: Request,  # noqa: F821
+    ) -> Optional[Response]:  # noqa: E501, F821
+        if request.path == "/healthz":
+            return Response(200, "OK", Headers(), b"OK\n")  # noqa: F821
         return None
 
     async def _serve() -> None:
