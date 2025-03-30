@@ -5,7 +5,7 @@ description = "River toolkit for Python"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "replit-river==0.16.5",
+    "replit-river==0.16.7",
 ]
 
 [build-system]
