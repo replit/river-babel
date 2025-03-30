@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from datetime import timedelta
-from typing import AsyncIterator, Dict
+from typing import Any, AsyncGenerator, AsyncIterator, Dict
 
 from replit_river import (
     Client,
@@ -43,7 +43,7 @@ RIVER_SERVER = os.getenv("RIVER_SERVER")
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="Python Server %(asctime)s - %(levelname)s - %(message)s",
+    format="Python Client %(asctime)s - %(levelname)s - %(message)s",
 )
 
 
@@ -51,7 +51,36 @@ input_streams: Dict[str, asyncio.Queue] = {}
 tasks: Dict[str, asyncio.Task] = {}
 
 
-async def process_commands() -> None:
+async def asyncly_emit(
+    actions: list[Any],
+) -> AsyncGenerator[tuple[str, Any], None]:  # noqa: E501
+    for action in actions:
+        line = json.dumps(action)
+        yield line, action
+
+
+async def read_from_stdin() -> AsyncGenerator[tuple[str, Any], None]:
+    while True:
+        line = await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
+
+        # We're done
+        if not line:
+            break
+
+        try:
+            action = json.loads(line)
+        except json.JSONDecodeError as e:
+            # Sometimes docker injects this into the stream:
+            # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...  # noqa: E501
+            offset = e.colno - 1
+            first = json.loads(line[0:offset])
+            assert "hijack" in first
+            action = json.loads(line[offset:])
+
+        yield line, action
+
+
+async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
     logging.error("start python river client")
     uri = f"ws://{RIVER_SERVER}:{PORT}"
     logging.error(
@@ -81,23 +110,12 @@ async def process_commands() -> None:
     )
     test_client = TestCient(client)
     try:
-        while True:
-            line = await asyncio.get_event_loop().run_in_executor(
-                None, sys.stdin.readline
-            )
-            if not line:
-                break
+        if static_actions:
+            actions = asyncly_emit(static_actions)
+        else:
+            actions = read_from_stdin()
 
-            try:
-                action = json.loads(line)
-            except json.JSONDecodeError as e:
-                # Sometimes docker injects this into the stream:
-                # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...  # noqa: E501
-                offset = e.colno - 1
-                first = json.loads(line[0:offset])
-                assert "hijack" in first
-                action = json.loads(line[offset:])
-
+        async for line, action in actions:
             if not action:
                 print("FATAL: invalid command", line)
                 sys.exit(1)
@@ -153,6 +171,8 @@ async def process_commands() -> None:
         await client.close()
         for task in tasks.values():
             task.cancel()
+            while not task.done():
+                await asyncio.sleep(0.1)
             exception = task.exception()
             if exception is not None:
                 logging.error("Task raised an exception: {}", exception)
@@ -218,7 +238,13 @@ async def handle_echo(id_: str, test_client: TestCient) -> None:
 
 
 async def main() -> None:
-    await process_commands()
+    # static_actions = [
+    #     {"type":"invoke","id":"1","proc":"repeat.echo","init":{}},
+    #     {"type":"invoke","id":"1","proc":"repeat.echo","payload":{"s":"hello"}},
+    #     {"type":"invoke","id":"1","proc":"repeat.echo","payload":{"s":"world"}}
+    # ]
+    # await process_commands(static_actions)
+    await process_commands(None)
 
 
 if __name__ == "__main__":
