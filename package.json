@@ -16,7 +16,7 @@
     "chalk": "^5.3.0",
     "diff": "^5.2.0",
     "docker-modem": "^5.0.3",
-    "dockerode": "^4.0.2",
+    "dockerode": "^4.0.5",
     "isomorphic-ws": "^5.0.0",
     "it-pushable": "^3.2.3",
     "listr2": "^8.2.3",
