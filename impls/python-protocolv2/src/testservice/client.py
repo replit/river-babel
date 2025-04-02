@@ -158,8 +158,6 @@ async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
                         s = payload["s"]
                         await input_streams[id_].put(s)
                 case "repeat.echo_prefix":
-                    print("repeat echo")
-
                     async def input_iterator() -> AsyncGenerator[
                         Echo_PrefixInput, None
                     ]:
