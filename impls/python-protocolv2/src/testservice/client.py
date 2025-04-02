@@ -249,7 +249,7 @@ async def handle_upload(id_: str, test_client: TestCient) -> None:
         return
 
     try:
-        init = SendInit(part=await input_streams[id_].get())
+        init = SendInit()
         result = await test_client.upload.send(init, upload_iterator())
         await print_result(result)
     except Exception:

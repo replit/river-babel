@@ -157,22 +157,7 @@
         "send": {
           "init": {
             "type": "object",
-            "properties": {
-              "part": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "const": "EOF",
-                    "type": "string"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "part"
-            ]
+            "properties": {}
           },
           "input": {
             "type": "object",
