@@ -5,11 +5,9 @@ from typing import (
 
 from pydantic import BaseModel, TypeAdapter
 
-SendInitPart = Literal["EOF"] | str
-
 
 class SendInit(BaseModel):
-    part: SendInitPart
+    pass
 
 
 SendInputPart = Literal["EOF"] | str
