@@ -85,9 +85,9 @@ async def read_from_stdin() -> AsyncGenerator[tuple[str, Any], None]:
 
 
 async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
-    logging.error("start python river client")
+    logging.info("start python river client")
     uri = f"ws://{RIVER_SERVER}:{PORT}"
-    logging.error(
+    logging.info(
         "Heartbeat: %d ms, Heartbeats to dead: %d, Session disconnect grace: %d ms",
         HEARTBEAT_MS,
         HEARTBEATS_UNTIL_DEAD,
