@@ -40,13 +40,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        client: ['node', 'python', 'node-protocolv2']
+        client: ['node', 'python', 'node-protocolv2', 'python-protocolv2']
         server: ['node', 'python', 'node-protocolv2']
         # protocolv2 clients aren't bakcwards compatible with protocolv1 servers
         exclude:
           - client: 'node-protocolv2'
             server: 'python'
           - client: 'node-protocolv2'
+            server: 'node'
+          - client: 'python-protocolv2'
+            server: 'python'
+          - client: 'python-protocolv2'
             server: 'node'
     runs-on: ubuntu-latest
     permissions:
