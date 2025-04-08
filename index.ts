@@ -281,6 +281,7 @@ async function runSuite(
 
   const testsFailed = new Set<string>();
   const testsFlaked = new Set<string>();
+  const testsSkipped = new Set<string>();
 
   const logsDir = `./logs/${clientImpl}-${serverImpl}/${Date.now()}/`;
   await mkdir(logsDir, { recursive: true });
@@ -338,24 +339,30 @@ async function runSuite(
               test.unordered ?? false,
             );
 
-            let diffMsg: string | undefined = undefined;
+            let diffMsg: string = "";
             if (hasDiff) {
-              const failMessage = test.flaky
-                ? chalk.black.bgYellow(' FLAKED ')
-                : chalk.black.bgRed(' FAIL ');
+              let preamble: string;
+              let failMessage: string;
+              if ((test.unsupported?.indexOf(clientImpl) ?? -1) >= 0) {
+                failMessage = chalk.black.bgGreen(' Skipped ');
+                preamble = `clientName: ${chalk.green(clientName)} ${failMessage}`;
+                testsSkipped.add(name);
+              } else if (test.flaky) {
+                failMessage = chalk.black.bgYellow(' FLAKED ');
+                preamble = `clientName: ${chalk.red(clientName)} ${failMessage}`;
+                testsFlaked.add(name);
+              } else {
+                failMessage = chalk.black.bgRed(' FAIL ')
+                preamble = `clientName: ${chalk.red(clientName)} ${failMessage}`;
+                testsFailed.add(name);
+              }
               diffMsg = `
-clientName: ${chalk.red(clientName)} ${failMessage}
+${preamble}
 
 diff:
 
 ${diff}
 `;
-
-              if (test.flaky) {
-                testsFlaked.add(name);
-              } else {
-                testsFailed.add(name);
-              }
             }
 
             const logOutput = stripAnsi(`
@@ -384,6 +391,8 @@ logs will be written to ${stderrLogFilePath}
             throw new Error('test failed');
           } else if (testsFlaked.has(name)) {
             task.skip('flaked');
+          } else if (testsSkipped.has(name)) {
+            task.skip('unsupported');
           }
         },
       }),
@@ -425,6 +434,11 @@ ${Array.from(testsFlaked)
 ${chalk.red(`failed:`)}
 ${Array.from(testsFailed)
   .map((name) => chalk.red(`- ${name}\n`))
+  .join('\n')}
+
+${chalk.yellow(`skipped:`)}
+${Array.from(testsSkipped)
+  .map((name) => chalk.yellow(`- ${name}\n`))
   .join('\n')}
 `;
 
