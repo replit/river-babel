@@ -5,15 +5,12 @@ description = "River toolkit for Python"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "replit-river==0.16.5",
+    "replit-river==0.17.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.uv.sources]
-replit-river = { git = "https://github.com/replit/river-python", branch = "dstewart/feat/river-v2-codegen" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/testservice"]
