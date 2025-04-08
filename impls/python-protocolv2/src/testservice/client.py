@@ -78,7 +78,9 @@ async def read_from_stdin() -> AsyncGenerator[tuple[str, Any], None]:
             # {"hijack":true,"stream":true,"stdin":true,"stdout":true,"stderr":true}{"type": "invoke", ...  # noqa: E501
             offset = e.colno - 1
             first = json.loads(line[0:offset])
-            assert "hijack" in first
+            if "hijack" not in first:
+                logging.warning("Working around docker 'hijack' message")
+                raise
             action = json.loads(line[offset:])
 
         yield line, action
@@ -145,6 +147,7 @@ async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
                         )  # TODO: See `note:numbers` above
                     except Exception:
                         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+                        logging.exception("Error during kv.set")
                 case "kv.watch":
                     k = payload["k"]
                     tasks[id_] = asyncio.create_task(handle_watch(id_, k, test_client))
@@ -176,6 +179,7 @@ async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
                                         print(f"{id_} -- err:{v.code}")
                         except Exception:
                             print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+                            logging.exception("Error during repeat.echo_prefix")
 
                     if id_ not in input_streams:
                         input_streams[id_] = asyncio.Queue()
@@ -204,7 +208,10 @@ async def process_commands(static_actions: list[dict[Any, Any]] | None) -> None:
                             input_streams.pop(id_, None)  # Cleanup queue reference
                 case other:
                     raise ValueError("Unexpected action!", other)
+    except Exception:
+        logging.exception("Top-level exception")
     finally:
+        logging.info("Input finished, closing")
         await client.close()
         for task in tasks.values():
             task.cancel()
@@ -229,6 +236,7 @@ async def handle_watch(
                 print(f"{id_} -- err:{v.code}")
     except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+        logging.exception("Error during handle_watch")
 
 
 async def handle_upload(id_: str, test_client: TestCient) -> None:
@@ -244,6 +252,7 @@ async def handle_upload(id_: str, test_client: TestCient) -> None:
             print(f"{id_} -- ok:{result.doc}")
         else:  # Assuming this handles both RiverError and exceptions
             print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+            logging.exception("Error during handle_upload")
         return
 
     try:
@@ -252,6 +261,7 @@ async def handle_upload(id_: str, test_client: TestCient) -> None:
         await print_result(result)
     except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+        logging.exception("Error during handle_upload")
 
 
 async def handle_echo(id_: str, init: Any, test_client: TestCient) -> None:
@@ -270,6 +280,7 @@ async def handle_echo(id_: str, init: Any, test_client: TestCient) -> None:
             print_result(v)
     except Exception:
         print(f"{id_} -- err:UNEXPECTED_DISCONNECT")
+        logging.exception("Error during handle_echo")
 
 
 async def main() -> None:
