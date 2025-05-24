@@ -4,7 +4,7 @@ set -ex
 
 REPO_ROOT_DIR="$(git rev-parse --show-toplevel)"
 
-cd "${REPO_ROOT_DIR}/impls/python"
+cd "${REPO_ROOT_DIR}/impls/python-protocolv2"
 
 rm -rf \
   src/river_python_test/protos/*pb2* \
@@ -32,7 +32,8 @@ uv run python -m replit_river.codegen \
   client \
     --output ./src/testservice/protos \
     --client-name TestCient \
-    "${REPO_ROOT_DIR}/schema.json"
+    --protocol-version v2.0 \
+    "${REPO_ROOT_DIR}/schema-v2.json"
 
 "${REPO_ROOT_DIR}/scripts/patch-grpc.sh" "$(pwd)"
 

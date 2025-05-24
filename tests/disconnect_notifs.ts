@@ -32,7 +32,7 @@ const RpcDisconnectNotifs: Test = {
 };
 
 const SubscribeDisconnectNotifs: Test = {
-  flaky: true,
+  unsupported: ["node-protocolv2", "python-protocolv2"],
   clients: {
     client: {
       actions: [

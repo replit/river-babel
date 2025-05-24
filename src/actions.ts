@@ -123,4 +123,5 @@ export interface Test {
   // Unordered means that prior to diffing the output, it will be sorted lexicographically.
   // Useful for tests that have inherent racy output.
   unordered?: boolean;
+  unsupported?: string[];
 }
